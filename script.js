@@ -30,6 +30,7 @@ const messageDiv = document.getElementById('message');
 const autoButton = document.getElementById('auto-button');
 const stopAutoButton = document.getElementById('stop-auto');
 const winLines = document.querySelectorAll('.win-line');
+const winLine = document.querySelector('.win-line.middle');
 
 // 拉霸機圖案與對應圖片
 const SYMBOLS = [
@@ -44,11 +45,13 @@ const SYMBOLS = [
 const REEL_COUNT = 5;
 
 // 顯示中獎線
-function showWinLine(lineIndex) {
-    winLines[lineIndex].classList.add('active');
-    setTimeout(() => {
-        winLines[lineIndex].classList.remove('active');
-    }, 2000);
+function showWinLine() {
+    if (winLine) {
+        winLine.classList.add('active');
+        setTimeout(() => {
+            winLine.classList.remove('active');
+        }, 2000);
+    }
 }
 
 // 讀取本地餘額
@@ -230,11 +233,8 @@ async function spin() {
         const board = await spinAllReels53(2500);
         const result = getWinResult53(board, currentBet);
         
-        if (result.winLineIndex !== -1) {
-            showWinLine(result.winLineIndex);
-        }
-        
         if (result.winAmount > 0) {
+            showWinLine();
             updateBalance(result.winAmount);
             showMessage(result.msg + ` 您贏得了 ${result.winAmount} 點！`, '#388e3c');
         } else {
@@ -256,17 +256,15 @@ async function spin() {
             }, 1000);
         }
     } catch (error) {
-        console.error('Spin error:', error);
-        showMessage('發生錯誤，請重試', '#d32f2f');
+        console.error('發生錯誤：', error);
+        showMessage('發生錯誤，請重新整理頁面後再試', '#d32f2f');
     } finally {
-        // 確保所有動畫和操作完成後才解除鎖定
         setTimeout(() => {
             isSpinning = false;
             spinButton.disabled = false;
             autoButton.disabled = false;
             betInput.disabled = false;
             
-            // 重置所有輪盤的樣式
             reels.forEach(reel => {
                 const inner = reel.querySelector('.reel-inner');
                 inner.style.transition = 'none';
@@ -417,20 +415,20 @@ function getWinResult53(board, betAmount) {
     }
 
     const type = symbolType[maxType];
-    let result = { winAmount: 0, msg: '', bonus: false, free: false, winLineIndex: 1 };
+    let result = { winAmount: 0, msg: '', bonus: false, free: false };
 
     if (maxCount === 5 && type === 'diamond') {
-        result = { winAmount: betAmount * 1000, msg: '五個💎！x1000倍！', bonus: false, free: false, winLineIndex: 1 };
+        result = { winAmount: betAmount * 1000, msg: '五個💎！x1000倍！', bonus: false, free: false };
     } else if (maxCount === 5) {
-        result = { winAmount: betAmount * 500, msg: '五個相同！x500倍！', bonus: false, free: false, winLineIndex: 1 };
+        result = { winAmount: betAmount * 500, msg: '五個相同！x500倍！', bonus: false, free: false };
     } else if (maxCount === 4 && type === 'diamond') {
-        result = { winAmount: betAmount * 100, msg: '四個💎！x100倍！', bonus: false, free: false, winLineIndex: 1 };
+        result = { winAmount: betAmount * 100, msg: '四個💎！x100倍！', bonus: false, free: false };
     } else if (maxCount === 4) {
-        result = { winAmount: betAmount * 50, msg: '四個相同！x50倍！', bonus: false, free: false, winLineIndex: 1 };
+        result = { winAmount: betAmount * 50, msg: '四個相同！x50倍！', bonus: false, free: false };
     } else if (maxCount === 3 && type === 'diamond') {
-        result = { winAmount: betAmount * 20, msg: '三個💎！x20倍！', bonus: false, free: false, winLineIndex: 1 };
+        result = { winAmount: betAmount * 20, msg: '三個💎！x20倍！', bonus: false, free: false };
     } else if (maxCount === 3) {
-        result = { winAmount: betAmount * 5, msg: '三個相同！x5倍！', bonus: false, free: false, winLineIndex: 1 };
+        result = { winAmount: betAmount * 5, msg: '三個相同！x5倍！', bonus: false, free: false };
     }
 
     let starCount = 0, bellCount = 0;
