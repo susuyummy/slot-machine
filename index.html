@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拉霸機遊戲</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>拉霸機遊戲</h1>
+        <div class="slot-machine">
+            <div class="reels-group">
+                <div class="reel" id="reel1"><div class="reel-inner"></div></div>
+                <div class="reel" id="reel2"><div class="reel-inner"></div></div>
+                <div class="reel" id="reel3"><div class="reel-inner"></div></div>
+                <div class="reel" id="reel4"><div class="reel-inner"></div></div>
+                <div class="reel" id="reel5"><div class="reel-inner"></div></div>
+            </div>
+            <div class="lever-area">
+                <div class="lever" id="lever">
+                    <div class="lever-knob"></div>
+                </div>
+            </div>
+            <div class="buttons">
+                <button id="spin-button">開始遊戲</button>
+            </div>
+        </div>
+        <div class="score">
+            <p>餘額: <span id="balance">1000</span></p>
+            <p>下注金額: <input type="number" id="bet" value="10" min="1" max="100"></p>
+        </div>
+        <div class="paytable">
+            <h2>獎金表</h2>
+            <p>五個相同: 10倍</p>
+            <p>四個相同: 5倍</p>
+            <p>三個相同: 3倍</p>
+        </div>
+        <div id="message" class="message"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 

@@ -1,0 +1,219 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    max-width: 800px;
+    width: 95%;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 2rem;
+}
+
+.slot-machine {
+    margin-bottom: 2rem;
+}
+
+.reels-group {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.reel {
+    width: 60px;
+    height: 180px; /* 3格 */
+    background-color: #fff;
+    border: none;
+    border-radius: 0;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.reel-inner {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    transition: transform 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.reel-inner.up-anim {
+    transform: translateY(-60px);
+}
+
+.reel.spinning .reel-inner {
+    animation: reel-spin 0.6s linear infinite;
+}
+
+@keyframes reel-spin {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-100%); }
+}
+
+.reel-inner img {
+    width: 100%;
+    height: 60px;
+    object-fit: cover;
+    display: block;
+}
+
+.buttons {
+    margin-top: 1rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+#auto-spin-button {
+    background-color: #2196F3;
+}
+
+#auto-spin-button:hover {
+    background-color: #1976D2;
+}
+
+#stop-auto-button {
+    background-color: #f44336;
+}
+
+#stop-auto-button:hover {
+    background-color: #d32f2f;
+}
+
+.score {
+    margin-top: 1rem;
+}
+
+.score p {
+    margin: 0.5rem 0;
+}
+
+input[type="number"] {
+    width: 80px;
+    padding: 0.3rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.paytable {
+    margin-top: 2rem;
+    padding: 1rem;
+    background-color: #f8f8f8;
+    border-radius: 8px;
+}
+
+.paytable h2 {
+    color: #333;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.paytable p {
+    margin: 0.5rem 0;
+    color: #666;
+}
+
+.message {
+    margin-top: 1.5rem;
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #d32f2f;
+    min-height: 2rem;
+    transition: color 0.3s;
+    letter-spacing: 1px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 移除 .reel.spinning img 的旋轉動畫 */
+
+.lever-area {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    height: 200px;
+    margin-right: 30px;
+    margin-top: 10px;
+}
+
+.lever {
+    width: 18px;
+    height: 120px;
+    background: linear-gradient(180deg, #bbb 60%, #888 100%);
+    border-radius: 9px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.lever-knob {
+    width: 36px;
+    height: 36px;
+    background: radial-gradient(circle at 30% 30%, #fff 60%, #e74c3c 100%);
+    border-radius: 50%;
+    position: absolute;
+    left: 50%;
+    bottom: -18px;
+    transform: translateX(-50%);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    border: 2px solid #aaa;
+}
+
+.lever:active {
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.lever.lever-pushed {
+    animation: lever-push-up 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@keyframes lever-push-up {
+    0% { transform: translateY(0); }
+    40% { transform: translateY(-60px); }
+    60% { transform: translateY(-60px); }
+    100% { transform: translateY(0); }
+} 
