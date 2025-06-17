@@ -219,11 +219,11 @@ button:disabled {
 }
 
 .lever.lever-pushed {
-    transform: rotate(20deg);
+     transform: rotate(-20deg);
 }
 
 .lever.lever-pushed .lever-knob {
-    top: 80px;
+     top: 80px;
 }
 
 @media (max-width: 768px) {
