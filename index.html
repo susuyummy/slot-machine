@@ -40,7 +40,7 @@
         <div class="game-info">
             <div class="score">
                 <p>餘額: <span id="balance">1000</span></p>
-                <p>下注金額: <input type="number" id="bet" value="10" min="1" max="100"></p>
+                <p>下注金額: <input type="number" id="bet" value="10" min="10" max="100"></p>
             </div>
             <div class="paytable">
                 <h2>獎金表</h2>
@@ -78,6 +78,24 @@
         </div>
         <div id="message" class="message"></div>
     </div>
+
+    <!-- BONUS GAME 模態框 -->
+    <div id="bonus-modal" class="modal">
+        <div class="modal-content">
+            <h2>🎉 BONUS GAME 🎉</h2>
+            <p>恭喜獲得 3 次免費轉盤機會！</p>
+            <div class="bonus-info">
+                <p>剩餘次數: <span id="bonus-spins">3</span></p>
+                <p>本輪獲得: <span id="bonus-win">0</span></p>
+                <p>總計獲得: <span id="bonus-total">0</span></p>
+            </div>
+            <div class="bonus-reels">
+                <!-- BONUS 遊戲的轉輪會在 JavaScript 中動態生成 -->
+            </div>
+            <button id="bonus-spin">開始旋轉</button>
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html> 

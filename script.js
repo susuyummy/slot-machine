@@ -82,148 +82,82 @@ function saveBalance() {
     localStorage.setItem('slot-balance', balance);
 }
 
-window.onload = () => {
-    loadBalance();
-    reels.forEach(reel => {
-        const inner = reel.querySelector('.reel-inner');
-        inner.innerHTML = '';
-        inner.style.transform = 'translateY(0)';
-    });
-    
-    // 拉桿互動
-    const lever = document.getElementById('lever');
-    if (lever) {
-        lever.addEventListener('click', async () => {
-            if (isSpinning || balance < parseInt(betInput.value)) return;
-            
-            lever.classList.add('lever-pushed');
-            await spin();
-            
-            setTimeout(() => {
-                lever.classList.remove('lever-pushed');
-            }, 1000);
-        });
-    }
-    
-    // 初始化輪盤
-    renderReels(Array(REEL_COUNT).fill(0));
-    
-    // 設置按鈕事件
-    spinButton.onclick = async () => {
-        if (!isSpinning) {
-            await spin();
-        }
-    };
-    
-    // 設置下注輸入
-    betInput.value = 10;
-    betInput.min = 10;
-    betInput.max = 100;
-    betInput.disabled = false;
-    
-    // 添加輸入驗證
-    betInput.addEventListener('input', function() {
-        let value = parseInt(this.value);
-        if (isNaN(value)) {
-            this.value = 10;
-        } else {
-            value = Math.max(10, Math.min(100, value));
-            this.value = value;
-        }
-    });
-};
+// BONUS GAME 相關變數
+let bonusSpinsLeft = 0;
+let bonusTotalWin = 0;
+let isBonusGame = false;
 
+// BONUS GAME 元素
+const bonusModal = document.getElementById('bonus-modal');
+const bonusSpinsDisplay = document.getElementById('bonus-spins');
+const bonusWinDisplay = document.getElementById('bonus-win');
+const bonusTotalDisplay = document.getElementById('bonus-total');
+const bonusSpinButton = document.getElementById('bonus-spin');
+
+// 更新餘額顯示
 function updateBalance(amount) {
     balance += amount;
     balanceDisplay.textContent = balance;
+    balanceDisplay.classList.add('balance-update');
+    setTimeout(() => {
+        balanceDisplay.classList.remove('balance-update');
+    }, 500);
     saveBalance();
 }
 
-function getRandomSymbols() {
-    return Array.from({ length: REEL_COUNT }, () => Math.floor(Math.random() * SYMBOLS.length));
+// 開始 BONUS GAME
+function startBonusGame() {
+    isBonusGame = true;
+    bonusSpinsLeft = 3;
+    bonusTotalWin = 0;
+    bonusModal.style.display = 'block';
+    updateBonusDisplay();
 }
 
-function renderReels(symbolIndexes) {
-    for (let i = 0; i < REEL_COUNT; i++) {
-        const reel = document.getElementById(`reel${i + 1}`);
-        const inner = reel.querySelector('.reel-inner');
-        inner.innerHTML = `<img src="${SYMBOLS[symbolIndexes[i]].img}" alt="${SYMBOLS[symbolIndexes[i]].label}" title="${SYMBOLS[symbolIndexes[i]].label}" />`;
+// 更新 BONUS 顯示
+function updateBonusDisplay() {
+    bonusSpinsDisplay.textContent = bonusSpinsLeft;
+    bonusWinDisplay.textContent = '0';
+    bonusTotalDisplay.textContent = bonusTotalWin;
+}
+
+// BONUS SPIN
+async function bonusSpin() {
+    if (bonusSpinsLeft <= 0) {
+        endBonusGame();
+        return;
+    }
+
+    bonusSpinButton.disabled = true;
+    bonusSpinsLeft--;
+    updateBonusDisplay();
+
+    const board = await spinAllReels53(2500);
+    const result = getWinResult53(board, parseInt(betInput.value));
+
+    if (result.winAmount > 0) {
+        showWinLine(result.winLines);
+        bonusTotalWin += result.winAmount;
+        bonusWinDisplay.textContent = result.winAmount;
+        bonusTotalDisplay.textContent = bonusTotalWin;
+        updateBalance(result.winAmount);
+    }
+
+    if (bonusSpinsLeft > 0) {
+        bonusSpinButton.disabled = false;
+    } else {
+        setTimeout(endBonusGame, 2000);
     }
 }
 
-function showMessage(msg, color = '#d32f2f') {
-    messageDiv.textContent = msg;
-    messageDiv.style.color = color;
+// 結束 BONUS GAME
+function endBonusGame() {
+    isBonusGame = false;
+    bonusModal.style.display = 'none';
+    showMessage(`BONUS GAME 結束！總共贏得 ${bonusTotalWin} 點！`, '#388e3c');
 }
 
-function clearMessage() {
-    messageDiv.textContent = '';
-}
-
-function countEachSymbol(symbolIndexes) {
-    const count = {};
-    for (const idx of symbolIndexes) {
-        count[idx] = (count[idx] || 0) + 1;
-    }
-    return count;
-}
-
-function checkWin(symbolIndexes) {
-    const count = countEachSymbol(symbolIndexes);
-    let result = { win: false, multiplier: 0, message: '', bonus: false, freeSpin: false };
-    const diamondIdx = SYMBOLS.findIndex(s => s.name === 'diamond');
-    const starIdx = SYMBOLS.findIndex(s => s.name === 'star');
-    const bellIdx = SYMBOLS.findIndex(s => s.name === 'bell');
-    const diamondCount = count[diamondIdx] || 0;
-    const starCount = count[starIdx] || 0;
-    const bellCount = count[bellIdx] || 0;
-    if (diamondCount === 5) {
-        result = { win: true, multiplier: 1000, message: '五個💎！x1000倍！', bonus: false, freeSpin: false };
-    } else if (Object.values(count).some((v, idx) => v === 5 && idx !== diamondIdx)) {
-        result = { win: true, multiplier: 500, message: '五個相同！x500倍！', bonus: false, freeSpin: false };
-    } else if (diamondCount === 4) {
-        result = { win: true, multiplier: 100, message: '四個💎！x100倍！', bonus: false, freeSpin: false };
-    } else if (Object.values(count).some((v, idx) => v === 4 && idx !== diamondIdx)) {
-        result = { win: true, multiplier: 50, message: '四個相同！x50倍！', bonus: false, freeSpin: false };
-    } else if (diamondCount === 3) {
-        result = { win: true, multiplier: 20, message: '三個💎！x20倍！', bonus: false, freeSpin: false };
-    } else if (Object.values(count).some((v, idx) => v === 3 && idx !== diamondIdx)) {
-        result = { win: true, multiplier: 5, message: '三個相同！x5倍！', bonus: false, freeSpin: false };
-    } else if (diamondCount === 2) {
-        result = { win: true, multiplier: 3, message: '兩個💎！x3倍！', bonus: false, freeSpin: false };
-    } else if (Object.values(count).some((v, idx) => v === 2 && idx !== diamondIdx)) {
-        result = { win: true, multiplier: 1.5, message: '兩個相同！x1.5倍！', bonus: false, freeSpin: false };
-    }
-    if (starCount === 3) {
-        result.bonus = true;
-        result.message += ' 觸發BONUS GAME!';
-    }
-    if (bellCount === 3) {
-        result.freeSpin = true;
-        result.message += ' 獲得一次免費轉盤!';
-    }
-    return result;
-}
-
-// 新增：顯示獎金動畫圖案
-function showBonusIcon() {
-    let icon = document.createElement('div');
-    icon.id = 'bonus-icon';
-    icon.style.position = 'fixed';
-    icon.style.left = '50%';
-    icon.style.top = '30%';
-    icon.style.transform = 'translate(-50%, -50%)';
-    icon.style.fontSize = '5rem';
-    icon.style.zIndex = '9999';
-    icon.style.pointerEvents = 'none';
-    icon.style.animation = 'bonus-pop 1.2s cubic-bezier(0.23,1,0.32,1)';
-    icon.innerHTML = '⭐BONUS!';
-    document.body.appendChild(icon);
-    setTimeout(() => {
-        icon.remove();
-    }, 1200);
-}
-
+// 修改主要的 spin 函數
 async function spin() {
     if (isSpinning) return;
     
@@ -244,6 +178,19 @@ async function spin() {
         if (!freeSpin) updateBalance(-currentBet);
         freeSpin = false;
         
+        // 添加轉動動畫
+        reels.forEach((reel, index) => {
+            const inner = reel.querySelector('.reel-inner');
+            inner.classList.add('spinning');
+            setTimeout(() => {
+                inner.classList.remove('spinning');
+                inner.classList.add('stopping');
+                setTimeout(() => {
+                    inner.classList.remove('stopping');
+                }, 500);
+            }, 1000 + index * 200);
+        });
+
         console.log('開始旋轉...');
         const board = await spinAllReels53(2500);
         console.log('旋轉結束，盤面：', board);
@@ -261,9 +208,10 @@ async function spin() {
             console.log('沒有中獎');
         }
         
-        if (result.bonus) {
+        if (result.bonus && !isBonusGame) {
             showBonusIcon();
             console.log('觸發 BONUS GAME');
+            setTimeout(startBonusGame, 1000);
         }
         
         if (result.free) {
@@ -362,6 +310,9 @@ async function spinAllReels53(duration = 2500) {
             for (let i = 0; i < steps; i++) {
                 currentOffset++;
                 for (let col = 0; col < reelCount; col++) {
+                    // 添加延遲停止效果
+                    if (i >= steps - 5 - col) continue;
+                    
                     wheels[col][(currentOffset + wheelLength - 1) % wheelLength] = Math.floor(Math.random() * symbols.length);
                     const inner = reels[col].querySelector('.reel-inner');
                     inner.style.transition = `transform ${i < steps - 5 ? 0.06 : 0.1}s cubic-bezier(0.23, 1, 0.32, 1)`;
@@ -374,6 +325,8 @@ async function spinAllReels53(duration = 2500) {
 
                 if ((currentOffset + rowCount) >= wheelLength) {
                     for (let col = 0; col < reelCount; col++) {
+                        if (i >= steps - 5 - col) continue;
+                        
                         const inner = reels[col].querySelector('.reel-inner');
                         let newImgs = '';
                         for (let i = 0; i < wheelLength; i++) {
@@ -398,7 +351,6 @@ async function spinAllReels53(duration = 2500) {
                 inner.style.transform = 'translateY(0)';
             }
 
-            // 確保動畫完全結束後再解除鎖定
             setTimeout(() => {
                 resolve(finalBoard);
             }, 300);
@@ -522,4 +474,59 @@ stopAutoButton.addEventListener('click', () => {
     isAutoMode = false;
     autoButton.style.display = 'inline-block';
     stopAutoButton.style.display = 'none';
-}); 
+});
+
+// 綁定 BONUS GAME 按鈕事件
+bonusSpinButton.addEventListener('click', bonusSpin);
+
+// 修改初始化函數
+window.onload = () => {
+    loadBalance();
+    reels.forEach(reel => {
+        const inner = reel.querySelector('.reel-inner');
+        inner.innerHTML = '';
+        inner.style.transform = 'translateY(0)';
+    });
+    
+    // 拉桿互動
+    const lever = document.getElementById('lever');
+    if (lever) {
+        lever.addEventListener('click', async () => {
+            if (isSpinning || (balance < parseInt(betInput.value) && !freeSpin)) return;
+            
+            lever.classList.add('lever-pushed');
+            await spin();
+            
+            setTimeout(() => {
+                lever.classList.remove('lever-pushed');
+            }, 1000);
+        });
+    }
+    
+    // 初始化輪盤
+    renderReels(Array(REEL_COUNT).fill(0));
+    
+    // 設置按鈕事件
+    spinButton.onclick = async () => {
+        if (!isSpinning && (balance >= parseInt(betInput.value) || freeSpin)) {
+            await spin();
+        }
+    };
+    
+    // 設置下注輸入
+    betInput.value = 10;
+    betInput.min = 10;
+    betInput.max = 100;
+    betInput.disabled = false;
+    
+    // 添加輸入驗證
+    betInput.addEventListener('input', function() {
+        let value = parseInt(this.value);
+        if (isNaN(value)) {
+            this.value = 10;
+        } else {
+            value = Math.max(10, Math.min(100, value));
+            this.value = value;
+        }
+    });
+}; 
