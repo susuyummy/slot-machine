@@ -16,7 +16,7 @@ const symbolType = [
 ];
 let balance = 1000;
 let isSpinning = false;
-let isAutoLever = false;
+let isAutoMode = false;
 let freeSpin = false;
 
 const reelCount = 5;
@@ -27,6 +27,9 @@ const spinButton = document.getElementById('spin-button');
 const balanceDisplay = document.getElementById('balance');
 const betInput = document.getElementById('bet');
 const messageDiv = document.getElementById('message');
+const autoButton = document.getElementById('auto-button');
+const stopAutoButton = document.getElementById('stop-auto');
+const winLines = document.querySelectorAll('.win-line');
 
 // 拉霸機圖案與對應圖片
 const SYMBOLS = [
@@ -39,11 +42,6 @@ const SYMBOLS = [
 ];
 
 const REEL_COUNT = 5;
-const BET_AMOUNT = 10;
-
-const autoButton = document.getElementById('auto-button');
-const stopAutoButton = document.getElementById('stop-auto');
-const winLines = document.querySelectorAll('.win-line');
 
 // 顯示中獎線
 function showWinLine(lineIndex) {
@@ -78,15 +76,15 @@ window.onload = () => {
     const lever = document.getElementById('lever');
     if (lever) {
         lever.addEventListener('click', async () => {
-            if (isSpinning || isAutoLever || balance < 10) return;
-            isAutoLever = true;
+            if (isSpinning || isAutoMode || balance < 10) return;
+            isAutoMode = true;
             autoLeverSpin();
         });
     }
     renderReels(Array(REEL_COUNT).fill(0));
     document.getElementById('spin-button').onclick = spin;
-    document.getElementById('bet').value = BET_AMOUNT;
-    document.getElementById('bet').disabled = true;
+    document.getElementById('bet').value = 10;
+    document.getElementById('bet').disabled = false;
 };
 
 function updateBalance(amount) {
@@ -183,17 +181,23 @@ function showBonusIcon() {
 async function spin() {
     if (isSpinning) return;
     clearMessage();
-    if (!freeSpin && balance < 10) {
+    
+    const currentBet = parseInt(betInput.value);
+    if (!freeSpin && balance < currentBet) {
         showMessage('餘額不足！', '#d32f2f');
         return;
     }
+    
     isSpinning = true;
     spinButton.disabled = true;
     autoButton.disabled = true;
-    if (!freeSpin) updateBalance(-10);
+    betInput.disabled = true; // 轉動時禁用下注更改
+    
+    if (!freeSpin) updateBalance(-currentBet);
     freeSpin = false;
+    
     const board = await spinAllReels53(2500);
-    const result = getWinResult53(board);
+    const result = getWinResult53(board, currentBet);
     
     if (result.winLineIndex !== -1) {
         showWinLine(result.winLineIndex);
@@ -224,6 +228,7 @@ async function spin() {
     isSpinning = false;
     spinButton.disabled = false;
     autoButton.disabled = false;
+    betInput.disabled = false; // 恢復下注更改
 }
 
 async function autoLeverSpin() {
@@ -239,7 +244,7 @@ async function autoLeverSpin() {
         }
         await sleep(200);
     }
-    isAutoLever = false;
+    isAutoMode = false;
 }
 
 spinButton.addEventListener('click', spin);
@@ -329,11 +334,10 @@ function getSymbolImg(symbol) {
 }
 
 // 只判斷中間橫排
-function getWinResult53(board) {
-    // 只檢查中間線
+function getWinResult53(board, betAmount) {
     let line = [];
     for (let col = 0; col < reelCount; col++) {
-        line.push(board[col][1]); // 只取中間行
+        line.push(board[col][1]);
     }
 
     const counts = {};
@@ -351,23 +355,22 @@ function getWinResult53(board) {
     }
 
     const type = symbolType[maxType];
-    let result = { winAmount: 0, msg: '', bonus: false, free: false, winLineIndex: 1 }; // 1 代表中間線
+    let result = { winAmount: 0, msg: '', bonus: false, free: false, winLineIndex: 1 };
 
     if (maxCount === 5 && type === 'diamond') {
-        result = { winAmount: BET_AMOUNT * 1000, msg: '五個💎！x1000倍！', bonus: false, free: false, winLineIndex: 1 };
+        result = { winAmount: betAmount * 1000, msg: '五個💎！x1000倍！', bonus: false, free: false, winLineIndex: 1 };
     } else if (maxCount === 5) {
-        result = { winAmount: BET_AMOUNT * 500, msg: '五個相同！x500倍！', bonus: false, free: false, winLineIndex: 1 };
+        result = { winAmount: betAmount * 500, msg: '五個相同！x500倍！', bonus: false, free: false, winLineIndex: 1 };
     } else if (maxCount === 4 && type === 'diamond') {
-        result = { winAmount: BET_AMOUNT * 100, msg: '四個💎！x100倍！', bonus: false, free: false, winLineIndex: 1 };
+        result = { winAmount: betAmount * 100, msg: '四個💎！x100倍！', bonus: false, free: false, winLineIndex: 1 };
     } else if (maxCount === 4) {
-        result = { winAmount: BET_AMOUNT * 50, msg: '四個相同！x50倍！', bonus: false, free: false, winLineIndex: 1 };
+        result = { winAmount: betAmount * 50, msg: '四個相同！x50倍！', bonus: false, free: false, winLineIndex: 1 };
     } else if (maxCount === 3 && type === 'diamond') {
-        result = { winAmount: BET_AMOUNT * 20, msg: '三個💎！x20倍！', bonus: false, free: false, winLineIndex: 1 };
+        result = { winAmount: betAmount * 20, msg: '三個💎！x20倍！', bonus: false, free: false, winLineIndex: 1 };
     } else if (maxCount === 3) {
-        result = { winAmount: BET_AMOUNT * 5, msg: '三個相同！x5倍！', bonus: false, free: false, winLineIndex: 1 };
+        result = { winAmount: betAmount * 5, msg: '三個相同！x5倍！', bonus: false, free: false, winLineIndex: 1 };
     }
 
-    // 檢查特殊符號
     let starCount = 0, bellCount = 0;
     line.forEach(idx => {
         if (symbolType[idx] === 'star') starCount++;
@@ -392,8 +395,6 @@ style.innerHTML = `@keyframes bonus-pop {0%{transform:translate(-50%,-50%) scale
 document.head.appendChild(style);
 
 // 自動模式控制
-let isAutoMode = false;
-
 autoButton.addEventListener('click', () => {
     isAutoMode = true;
     autoButton.style.display = 'none';
@@ -410,13 +411,25 @@ stopAutoButton.addEventListener('click', () => {
 });
 
 async function autoSpin() {
-    while (isAutoMode && balance >= 10) {
+    const currentBet = parseInt(betInput.value);
+    while (isAutoMode && balance >= currentBet) {
         await spin();
         await sleep(1000);
     }
-    if (balance < 10) {
+    if (balance < currentBet) {
         isAutoMode = false;
         autoButton.style.display = 'inline-block';
         stopAutoButton.style.display = 'none';
     }
-} 
+}
+
+// 限制下注金額範圍
+betInput.addEventListener('change', function() {
+    let value = parseInt(this.value);
+    if (isNaN(value) || value < 10) {
+        value = 10;
+    } else if (value > 100) {
+        value = 100;
+    }
+    this.value = value;
+}); 

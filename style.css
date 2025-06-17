@@ -78,6 +78,10 @@ h1 {
 
 .win-line.middle {
     top: 50%;
+    transform-origin: center;
+    height: 4px;
+    background: rgba(255, 215, 0, 0.8);
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
 .win-line.bottom {
