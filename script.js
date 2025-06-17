@@ -230,23 +230,31 @@ async function spin() {
         if (!freeSpin) updateBalance(-currentBet);
         freeSpin = false;
         
+        console.log('開始旋轉...');
         const board = await spinAllReels53(2500);
+        console.log('旋轉結束，盤面：', board);
+        
         const result = getWinResult53(board, currentBet);
+        console.log('計算結果：', result);
         
         if (result.winAmount > 0) {
             showWinLine();
             updateBalance(result.winAmount);
             showMessage(result.msg + ` 您贏得了 ${result.winAmount} 點！`, '#388e3c');
+            console.log('顯示獲勝：', result.msg, result.winAmount);
         } else {
             showMessage('很可惜，沒有中獎，再試一次吧！', '#d32f2f');
+            console.log('沒有中獎');
         }
         
         if (result.bonus) {
             showBonusIcon();
+            console.log('觸發 BONUS GAME');
         }
         
         if (result.free) {
             freeSpin = true;
+            console.log('觸發免費轉盤');
             setTimeout(() => {
                 showMessage('免費轉盤啟動！', '#1976D2');
                 setTimeout(() => {
@@ -370,8 +378,8 @@ async function spinAllReels53(duration = 2500) {
             for (let col = 0; col < reelCount; col++) {
                 const inner = reels[col].querySelector('.reel-inner');
                 inner.innerHTML = '';
-                for (let i = 0; i < rowCount; i++) {
-                    inner.innerHTML += getSymbolImg(symbols[finalBoard[col][i]]);
+                for (let row = 0; row < rowCount; row++) {
+                    inner.innerHTML += getSymbolImg(symbols[finalBoard[col][row]]);
                 }
                 inner.style.transform = 'translateY(0)';
             }
@@ -381,7 +389,7 @@ async function spinAllReels53(duration = 2500) {
                 resolve(finalBoard);
             }, 300);
         } catch (error) {
-            console.error('Animation error:', error);
+            console.error('動畫錯誤：', error);
             resolve(Array.from({length: reelCount}, () => 
                 Array.from({length: rowCount}, () => Math.floor(Math.random() * symbols.length))
             ));
@@ -393,60 +401,80 @@ function getSymbolImg(symbol) {
     return `<img src="${symbol}" alt="水果">`;
 }
 
-// 只判斷中間橫排
+// 修改 getWinResult53 函數以確保正確計算獎金
 function getWinResult53(board, betAmount) {
-    let line = [];
-    for (let col = 0; col < reelCount; col++) {
-        line.push(board[col][1]);
-    }
-
-    const counts = {};
-    line.forEach(idx => {
-        counts[idx] = (counts[idx] || 0) + 1;
-    });
-
-    let maxType = null;
-    let maxCount = 0;
-    for (const idx in counts) {
-        if (counts[idx] > maxCount) {
-            maxCount = counts[idx];
-            maxType = parseInt(idx);
+    try {
+        let line = [];
+        for (let col = 0; col < reelCount; col++) {
+            line.push(board[col][1]); // 取得中間那行的符號
         }
+
+        const counts = {};
+        line.forEach(idx => {
+            counts[idx] = (counts[idx] || 0) + 1;
+        });
+
+        let maxType = null;
+        let maxCount = 0;
+        for (const idx in counts) {
+            if (counts[idx] > maxCount) {
+                maxCount = counts[idx];
+                maxType = parseInt(idx);
+            }
+        }
+
+        const type = symbolType[maxType];
+        let result = { winAmount: 0, msg: '', bonus: false, free: false };
+
+        // 檢查是否有足夠的相同符號
+        if (maxCount >= 3) {
+            if (type === 'diamond') {
+                if (maxCount === 5) {
+                    result.winAmount = betAmount * 1000;
+                    result.msg = '五個💎！x1000倍！';
+                } else if (maxCount === 4) {
+                    result.winAmount = betAmount * 100;
+                    result.msg = '四個💎！x100倍！';
+                } else if (maxCount === 3) {
+                    result.winAmount = betAmount * 20;
+                    result.msg = '三個💎！x20倍！';
+                }
+            } else {
+                if (maxCount === 5) {
+                    result.winAmount = betAmount * 500;
+                    result.msg = '五個相同！x500倍！';
+                } else if (maxCount === 4) {
+                    result.winAmount = betAmount * 50;
+                    result.msg = '四個相同！x50倍！';
+                } else if (maxCount === 3) {
+                    result.winAmount = betAmount * 5;
+                    result.msg = '三個相同！x5倍！';
+                }
+            }
+        }
+
+        // 檢查特殊符號
+        let starCount = 0, bellCount = 0;
+        line.forEach(idx => {
+            if (symbolType[idx] === 'star') starCount++;
+            if (symbolType[idx] === 'bell') bellCount++;
+        });
+
+        if (starCount >= 3) {
+            result.bonus = true;
+            result.msg += ' 觸發BONUS GAME!';
+        }
+        if (bellCount >= 3) {
+            result.free = true;
+            result.msg += ' 獲得一次免費轉盤!';
+        }
+
+        console.log('獲勝結果：', result);
+        return result;
+    } catch (error) {
+        console.error('計算獎金錯誤：', error);
+        return { winAmount: 0, msg: '', bonus: false, free: false };
     }
-
-    const type = symbolType[maxType];
-    let result = { winAmount: 0, msg: '', bonus: false, free: false };
-
-    if (maxCount === 5 && type === 'diamond') {
-        result = { winAmount: betAmount * 1000, msg: '五個💎！x1000倍！', bonus: false, free: false };
-    } else if (maxCount === 5) {
-        result = { winAmount: betAmount * 500, msg: '五個相同！x500倍！', bonus: false, free: false };
-    } else if (maxCount === 4 && type === 'diamond') {
-        result = { winAmount: betAmount * 100, msg: '四個💎！x100倍！', bonus: false, free: false };
-    } else if (maxCount === 4) {
-        result = { winAmount: betAmount * 50, msg: '四個相同！x50倍！', bonus: false, free: false };
-    } else if (maxCount === 3 && type === 'diamond') {
-        result = { winAmount: betAmount * 20, msg: '三個💎！x20倍！', bonus: false, free: false };
-    } else if (maxCount === 3) {
-        result = { winAmount: betAmount * 5, msg: '三個相同！x5倍！', bonus: false, free: false };
-    }
-
-    let starCount = 0, bellCount = 0;
-    line.forEach(idx => {
-        if (symbolType[idx] === 'star') starCount++;
-        if (symbolType[idx] === 'bell') bellCount++;
-    });
-
-    if (starCount === 3) {
-        result.bonus = true;
-        result.msg += ' 觸發BONUS GAME!';
-    }
-    if (bellCount === 3) {
-        result.free = true;
-        result.msg += ' 獲得一次免費轉盤!';
-    }
-
-    return result;
 }
 
 // 新增動畫樣式
