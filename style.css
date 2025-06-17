@@ -207,6 +207,7 @@ button:disabled {
     border-radius: 10px;
     position: relative;
     cursor: pointer;
+    transform-origin: top center;
     transition: transform 0.3s;
 }
 
@@ -223,11 +224,11 @@ button:disabled {
 }
 
 .lever.lever-pushed {
-     transform: rotate(-20deg);
+    transform: rotate(30deg);
 }
 
 .lever.lever-pushed .lever-knob {
-     top: 80px;
+    top: 80px;
 }
 
 @media (max-width: 768px) {
@@ -242,4 +243,37 @@ button:disabled {
     .lever-area {
         display: none;
     }
+}
+
+.score input[type="number"] {
+    width: 80px;
+    padding: 8px;
+    border: 2px solid #34495e;
+    border-radius: 5px;
+    font-size: 16px;
+    color: #2c3e50;
+    background: white;
+    text-align: center;
+}
+
+.score input[type="number"]:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+}
+
+.score input[type="number"]:disabled {
+    background: #ecf0f1;
+    cursor: not-allowed;
+}
+
+/* 移除輸入框的上下箭頭 */
+.score input[type="number"]::-webkit-inner-spin-button,
+.score input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.score input[type="number"] {
+    -moz-appearance: textfield;
 } 
