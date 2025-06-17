@@ -291,7 +291,7 @@ async function spinAllReels53(duration = 2500) {
                 const inner = reels[col].querySelector('.reel-inner');
                 inner.innerHTML = '';
                 for (let i = 0; i < wheelLength; i++) {
-                    inner.innerHTML += getSymbolImg(symbols[wheels[col][i]]);
+                    inner.innerHTML += `<img src="${symbols[wheels[col][i]]}" alt="水果">`;
                 }
                 inner.style.transform = 'translateY(0)';
             }
@@ -331,7 +331,7 @@ async function spinAllReels53(duration = 2500) {
                         let newImgs = '';
                         for (let i = 0; i < wheelLength; i++) {
                             const idx = (currentOffset + i) % wheelLength;
-                            newImgs += getSymbolImg(symbols[wheels[col][idx]]);
+                            newImgs += `<img src="${symbols[wheels[col][idx]]}" alt="水果">`;
                         }
                         inner.innerHTML = newImgs;
                         inner.style.transition = 'none';
@@ -346,7 +346,7 @@ async function spinAllReels53(duration = 2500) {
                 const inner = reels[col].querySelector('.reel-inner');
                 inner.innerHTML = '';
                 for (let row = 0; row < rowCount; row++) {
-                    inner.innerHTML += getSymbolImg(symbols[finalBoard[col][row]]);
+                    inner.innerHTML += `<img src="${symbols[finalBoard[col][row]]}" alt="水果">`;
                 }
                 inner.style.transform = 'translateY(0)';
             }
@@ -561,4 +561,41 @@ window.onload = () => {
             this.value = value;
         }
     });
-}; 
+};
+
+// 添加回必要的函數
+function showMessage(msg, color = '#d32f2f') {
+    messageDiv.textContent = msg;
+    messageDiv.style.color = color;
+}
+
+function clearMessage() {
+    messageDiv.textContent = '';
+}
+
+function renderReels(symbolIndexes) {
+    for (let i = 0; i < reelCount; i++) {
+        const reel = document.getElementById(`reel${i + 1}`);
+        const inner = reel.querySelector('.reel-inner');
+        inner.innerHTML = `<img src="${symbols[symbolIndexes[i]]}" alt="水果">`;
+    }
+}
+
+// 新增：顯示獎金動畫圖案
+function showBonusIcon() {
+    let icon = document.createElement('div');
+    icon.id = 'bonus-icon';
+    icon.style.position = 'fixed';
+    icon.style.left = '50%';
+    icon.style.top = '30%';
+    icon.style.transform = 'translate(-50%, -50%)';
+    icon.style.fontSize = '5rem';
+    icon.style.zIndex = '9999';
+    icon.style.pointerEvents = 'none';
+    icon.style.animation = 'bonus-pop 1.2s cubic-bezier(0.23,1,0.32,1)';
+    icon.innerHTML = '⭐BONUS!';
+    document.body.appendChild(icon);
+    setTimeout(() => {
+        icon.remove();
+    }, 1200);
+} 
