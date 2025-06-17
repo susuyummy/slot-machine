@@ -78,12 +78,12 @@ window.onload = () => {
     if (lever) {
         lever.addEventListener('click', async () => {
             if (isSpinning || isAutoMode || balance < parseInt(betInput.value)) return;
-            isAutoMode = true;
+            
             lever.classList.add('lever-pushed');
             await spin();
+            
             setTimeout(() => {
                 lever.classList.remove('lever-pushed');
-                isAutoMode = false;
             }, 1000);
         });
     }
@@ -252,10 +252,12 @@ async function spin() {
         console.error('Spin error:', error);
         showMessage('發生錯誤，請重試', '#d32f2f');
     } finally {
-        isSpinning = false;
-        spinButton.disabled = false;
-        autoButton.disabled = false;
-        betInput.disabled = false;
+        setTimeout(() => {
+            isSpinning = false;
+            spinButton.disabled = false;
+            autoButton.disabled = false;
+            betInput.disabled = false;
+        }, 500);
     }
 }
 
@@ -289,7 +291,7 @@ function getRandomBoard() {
 }
 
 // 動畫滾輪，三格都滾動
-async function spinAllReels53(duration = 2500, stopBoard = null) {
+async function spinAllReels53(duration = 2500) {
     let wheels = [];
     for (let col = 0; col < reelCount; col++) {
         let wheel = [];
@@ -298,6 +300,8 @@ async function spinAllReels53(duration = 2500, stopBoard = null) {
         }
         wheels.push(wheel);
     }
+
+    // 初始化輪盤
     for (let col = 0; col < reelCount; col++) {
         const inner = reels[col].querySelector('.reel-inner');
         inner.innerHTML = '';
@@ -306,23 +310,31 @@ async function spinAllReels53(duration = 2500, stopBoard = null) {
         }
         inner.style.transform = 'translateY(0)';
     }
+
     let currentOffset = 0;
     let steps = 40;
     let minInterval = 20;
     let maxInterval = 180;
-    let finalOffsets = stopBoard ? stopBoard.map(colArr => colArr[0]) : Array.from({length: reelCount}, () => Math.floor(Math.random() * (wheelLength - rowCount)));
+
+    // 生成最終結果
+    let finalBoard = Array.from({length: reelCount}, () => 
+        Array.from({length: rowCount}, () => Math.floor(Math.random() * symbols.length))
+    );
+
+    // 主要動畫循環
     for (let i = 0; i < steps; i++) {
         currentOffset++;
         for (let col = 0; col < reelCount; col++) {
-            // 每次都補一個新隨機
             wheels[col][(currentOffset + wheelLength - 1) % wheelLength] = Math.floor(Math.random() * symbols.length);
             const inner = reels[col].querySelector('.reel-inner');
-            inner.style.transition = 'transform 0.06s cubic-bezier(0.23, 1, 0.32, 1)';
+            inner.style.transition = `transform ${i < steps - 5 ? 0.06 : 0.1}s cubic-bezier(0.23, 1, 0.32, 1)`;
             inner.style.transform = `translateY(-${currentOffset * 60}px)`;
         }
+
         let t = i / (steps - 1);
         let interval = minInterval + (maxInterval - minInterval) * Math.pow(t, 2.5);
-        await sleep(interval);
+        await new Promise(resolve => setTimeout(resolve, interval));
+
         if ((currentOffset + rowCount) >= wheelLength) {
             for (let col = 0; col < reelCount; col++) {
                 const inner = reels[col].querySelector('.reel-inner');
@@ -338,23 +350,19 @@ async function spinAllReels53(duration = 2500, stopBoard = null) {
             currentOffset = 0;
         }
     }
-    // 最後平滑滑到隨機停下的位置
+
+    // 最終停止位置
     for (let col = 0; col < reelCount; col++) {
         const inner = reels[col].querySelector('.reel-inner');
-        inner.style.transition = 'transform 0.25s cubic-bezier(0.23, 1, 0.32, 1)';
-        inner.style.transform = `translateY(-${finalOffsets[col] * 60}px)`;
-    }
-    await sleep(300);
-    // 回傳盤面
-    let board = [];
-    for (let col = 0; col < reelCount; col++) {
-        let colArr = [];
-        for (let row = 0; row < rowCount; row++) {
-            colArr.push(wheels[col][(finalOffsets[col] + row) % wheelLength]);
+        inner.innerHTML = '';
+        for (let i = 0; i < rowCount; i++) {
+            inner.innerHTML += getSymbolImg(symbols[finalBoard[col][i]]);
         }
-        board.push(colArr);
+        inner.style.transform = 'translateY(0)';
     }
-    return board;
+
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return finalBoard;
 }
 
 function getSymbolImg(symbol) {

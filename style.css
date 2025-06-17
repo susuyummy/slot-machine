@@ -203,32 +203,33 @@ button:disabled {
 .lever {
     width: 20px;
     height: 120px;
-    background: #95a5a6;
+    background: linear-gradient(to bottom, #95a5a6, #7f8c8d);
     border-radius: 10px;
     position: relative;
     cursor: pointer;
     transform-origin: top center;
-    transition: transform 0.3s;
+    transition: all 0.3s ease;
 }
 
 .lever-knob {
     width: 40px;
     height: 40px;
-    background: #e74c3c;
+    background: linear-gradient(to bottom right, #e74c3c, #c0392b);
     border-radius: 50%;
     position: absolute;
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    transition: top 0.3s;
+    transition: top 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 .lever.lever-pushed {
-    transform: rotate(30deg);
+    height: 100px;
 }
 
 .lever.lever-pushed .lever-knob {
-    top: 80px;
+    top: 60px;
 }
 
 @media (max-width: 768px) {
