@@ -266,14 +266,75 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// 產生五乘三的盤面
+// 修改 renderReels 函數以接受完整的 5×3 board 資料
+function renderReels(board) {
+    for (let col = 0; col < reelCount; col++) {
+        const reel = document.getElementById(`reel${col + 1}`);
+        const inner = reel.querySelector('.reel-inner');
+        inner.innerHTML = '';
+        for (let row = 0; row < rowCount; row++) {
+            const index = board[col][row];
+            inner.innerHTML += `<img src="${symbols[index]}" alt="水果">`;
+        }
+    }
+}
+
+// 產生隨機盤面
 function getRandomBoard() {
     return Array.from({length: reelCount}, () =>
         Array.from({length: rowCount}, () => Math.floor(Math.random() * symbols.length))
     );
 }
 
-// 動畫滾輪，三格都滾動
+// 修改初始化函數
+window.onload = () => {
+    loadBalance();
+    
+    // 初始化輪盤為隨機盤面
+    const initialBoard = getRandomBoard();
+    renderReels(initialBoard);
+    
+    // 拉桿互動
+    const lever = document.getElementById('lever');
+    if (lever) {
+        lever.addEventListener('click', async () => {
+            if (isSpinning || (balance < parseInt(betInput.value) && !freeSpin)) return;
+            
+            lever.classList.add('lever-pushed');
+            await spin();
+            
+            setTimeout(() => {
+                lever.classList.remove('lever-pushed');
+            }, 1000);
+        });
+    }
+    
+    // 設置按鈕事件
+    spinButton.onclick = async () => {
+        if (!isSpinning && (balance >= parseInt(betInput.value) || freeSpin)) {
+            await spin();
+        }
+    };
+    
+    // 設置下注輸入
+    betInput.value = 10;
+    betInput.min = 10;
+    betInput.max = 100;
+    betInput.disabled = false;
+    
+    // 添加輸入驗證
+    betInput.addEventListener('input', function() {
+        let value = parseInt(this.value);
+        if (isNaN(value)) {
+            this.value = 10;
+        } else {
+            value = Math.max(10, Math.min(100, value));
+            this.value = value;
+        }
+    });
+};
+
+// 修改 spinAllReels53 函數中的最終盤面顯示
 async function spinAllReels53(duration = 2500) {
     return new Promise(async (resolve) => {
         try {
@@ -302,9 +363,7 @@ async function spinAllReels53(duration = 2500) {
             let maxInterval = 180;
 
             // 生成最終結果
-            let finalBoard = Array.from({length: reelCount}, () => 
-                Array.from({length: rowCount}, () => Math.floor(Math.random() * symbols.length))
-            );
+            let finalBoard = getRandomBoard();
 
             // 主要動畫循環
             for (let i = 0; i < steps; i++) {
@@ -342,23 +401,16 @@ async function spinAllReels53(duration = 2500) {
             }
 
             // 最終停止位置
-            for (let col = 0; col < reelCount; col++) {
-                const inner = reels[col].querySelector('.reel-inner');
-                inner.innerHTML = '';
-                for (let row = 0; row < rowCount; row++) {
-                    inner.innerHTML += `<img src="${symbols[finalBoard[col][row]]}" alt="水果">`;
-                }
-                inner.style.transform = 'translateY(0)';
-            }
+            renderReels(finalBoard);
 
             setTimeout(() => {
                 resolve(finalBoard);
             }, 300);
         } catch (error) {
             console.error('動畫錯誤：', error);
-            resolve(Array.from({length: reelCount}, () => 
-                Array.from({length: rowCount}, () => Math.floor(Math.random() * symbols.length))
-            ));
+            const errorBoard = getRandomBoard();
+            renderReels(errorBoard);
+            resolve(errorBoard);
         }
     });
 }
@@ -511,58 +563,6 @@ stopAutoButton.addEventListener('click', () => {
 // 綁定 BONUS GAME 按鈕事件
 bonusSpinButton.addEventListener('click', bonusSpin);
 
-// 修改初始化函數
-window.onload = () => {
-    loadBalance();
-    reels.forEach(reel => {
-        const inner = reel.querySelector('.reel-inner');
-        inner.innerHTML = '';
-        inner.style.transform = 'translateY(0)';
-    });
-    
-    // 拉桿互動
-    const lever = document.getElementById('lever');
-    if (lever) {
-        lever.addEventListener('click', async () => {
-            if (isSpinning || (balance < parseInt(betInput.value) && !freeSpin)) return;
-            
-            lever.classList.add('lever-pushed');
-            await spin();
-            
-            setTimeout(() => {
-                lever.classList.remove('lever-pushed');
-            }, 1000);
-        });
-    }
-    
-    // 初始化輪盤
-    renderReels(Array(REEL_COUNT).fill(0));
-    
-    // 設置按鈕事件
-    spinButton.onclick = async () => {
-        if (!isSpinning && (balance >= parseInt(betInput.value) || freeSpin)) {
-            await spin();
-        }
-    };
-    
-    // 設置下注輸入
-    betInput.value = 10;
-    betInput.min = 10;
-    betInput.max = 100;
-    betInput.disabled = false;
-    
-    // 添加輸入驗證
-    betInput.addEventListener('input', function() {
-        let value = parseInt(this.value);
-        if (isNaN(value)) {
-            this.value = 10;
-        } else {
-            value = Math.max(10, Math.min(100, value));
-            this.value = value;
-        }
-    });
-};
-
 // 添加回必要的函數
 function showMessage(msg, color = '#d32f2f') {
     messageDiv.textContent = msg;
@@ -571,14 +571,6 @@ function showMessage(msg, color = '#d32f2f') {
 
 function clearMessage() {
     messageDiv.textContent = '';
-}
-
-function renderReels(symbolIndexes) {
-    for (let i = 0; i < reelCount; i++) {
-        const reel = document.getElementById(`reel${i + 1}`);
-        const inner = reel.querySelector('.reel-inner');
-        inner.innerHTML = `<img src="${symbols[symbolIndexes[i]]}" alt="水果">`;
-    }
 }
 
 // 新增：顯示獎金動畫圖案
