@@ -41,6 +41,18 @@ const SYMBOLS = [
 const REEL_COUNT = 5;
 const BET_AMOUNT = 10;
 
+const autoButton = document.getElementById('auto-button');
+const stopAutoButton = document.getElementById('stop-auto');
+const winLines = document.querySelectorAll('.win-line');
+
+// 顯示中獎線
+function showWinLine(lineIndex) {
+    winLines[lineIndex].classList.add('active');
+    setTimeout(() => {
+        winLines[lineIndex].classList.remove('active');
+    }, 2000);
+}
+
 // 讀取本地餘額
 function loadBalance() {
     const saved = localStorage.getItem('slot-balance');
@@ -177,20 +189,28 @@ async function spin() {
     }
     isSpinning = true;
     spinButton.disabled = true;
+    autoButton.disabled = true;
     if (!freeSpin) updateBalance(-10);
     freeSpin = false;
     const board = await spinAllReels53(2500);
-    const { winAmount, msg, bonus, free } = getWinResult53(board);
-    if (winAmount > 0) {
-        updateBalance(winAmount);
-        showMessage(msg + ` 您贏得了 ${winAmount} 點！`, '#388e3c');
+    const result = getWinResult53(board);
+    
+    if (result.winLineIndex !== -1) {
+        showWinLine(result.winLineIndex);
+    }
+    
+    if (result.winAmount > 0) {
+        updateBalance(result.winAmount);
+        showMessage(result.msg + ` 您贏得了 ${result.winAmount} 點！`, '#388e3c');
     } else {
         showMessage('很可惜，沒有中獎，再試一次吧！', '#d32f2f');
     }
-    if (bonus) {
+    
+    if (result.bonus) {
         showBonusIcon();
     }
-    if (free) {
+    
+    if (result.free) {
         freeSpin = true;
         setTimeout(() => {
             showMessage('免費轉盤啟動！', '#1976D2');
@@ -200,8 +220,10 @@ async function spin() {
             }, 1000);
         }, 1000);
     }
+    
     isSpinning = false;
     spinButton.disabled = false;
+    autoButton.disabled = false;
 }
 
 async function autoLeverSpin() {
@@ -308,71 +330,108 @@ function getSymbolImg(symbol) {
 
 // 只判斷中間橫排
 function getWinResult53(board) {
-    // board[col][row]，row=0上 row=1中 row=2下
-    let line = [];
-    for (let col = 0; col < reelCount; col++) {
-        line.push(board[col][1]);
-    }
-    // 計算中間橫排的獎勵
-    const counts = {};
-    line.forEach(idx => {
-        counts[idx] = (counts[idx] || 0) + 1;
-    });
-    let maxType = null;
-    let maxCount = 0;
-    for (const idx in counts) {
-        if (counts[idx] > maxCount) {
-            maxCount = counts[idx];
-            maxType = parseInt(idx);
+    let allLines = [];
+    // 檢查三條橫線
+    for (let row = 0; row < 3; row++) {
+        let line = [];
+        for (let col = 0; col < reelCount; col++) {
+            line.push(board[col][row]);
         }
+        allLines.push(line);
     }
-    const type = symbolType[maxType];
-    let winAmount = 0;
-    let msg = '';
-    let bonus = false, free = false;
-    if (maxCount === 5 && type === 'diamond') {
-        winAmount = BET_AMOUNT * 1000;
-        msg = '五個💎！x1000倍！';
-    } else if (maxCount === 5) {
-        winAmount = BET_AMOUNT * 500;
-        msg = '五個相同！x500倍！';
-    } else if (maxCount === 4 && type === 'diamond') {
-        winAmount = BET_AMOUNT * 100;
-        msg = '四個💎！x100倍！';
-    } else if (maxCount === 4) {
-        winAmount = BET_AMOUNT * 50;
-        msg = '四個相同！x50倍！';
-    } else if (maxCount === 3 && type === 'diamond') {
-        winAmount = BET_AMOUNT * 20;
-        msg = '三個💎！x20倍！';
-    } else if (maxCount === 3) {
-        winAmount = BET_AMOUNT * 5;
-        msg = '三個相同！x5倍！';
-    } else if (maxCount === 2 && type === 'diamond') {
-        winAmount = BET_AMOUNT * 3;
-        msg = '兩個💎！x3倍！';
-    } else if (maxCount === 2) {
-        winAmount = Math.round(BET_AMOUNT * 1.5);
-        msg = '兩個相同！x1.5倍！';
-    }
-    // 任意3個⭐觸發BONUS GAME
-    let starCount = 0, bellCount = 0;
-    line.forEach(idx => {
-        if (symbolType[idx] === 'star') starCount++;
-        if (symbolType[idx] === 'bell') bellCount++;
+
+    let bestResult = { winAmount: 0, msg: '', bonus: false, free: false, winLineIndex: -1 };
+
+    allLines.forEach((line, lineIndex) => {
+        const counts = {};
+        line.forEach(idx => {
+            counts[idx] = (counts[idx] || 0) + 1;
+        });
+
+        let maxType = null;
+        let maxCount = 0;
+        for (const idx in counts) {
+            if (counts[idx] > maxCount) {
+                maxCount = counts[idx];
+                maxType = parseInt(idx);
+            }
+        }
+
+        const type = symbolType[maxType];
+        let result = { winAmount: 0, msg: '', bonus: false, free: false, winLineIndex: lineIndex };
+
+        if (maxCount === 5 && type === 'diamond') {
+            result = { winAmount: BET_AMOUNT * 1000, msg: '五個💎！x1000倍！', bonus: false, free: false, winLineIndex: lineIndex };
+        } else if (maxCount === 5) {
+            result = { winAmount: BET_AMOUNT * 500, msg: '五個相同！x500倍！', bonus: false, free: false, winLineIndex: lineIndex };
+        } else if (maxCount === 4 && type === 'diamond') {
+            result = { winAmount: BET_AMOUNT * 100, msg: '四個💎！x100倍！', bonus: false, free: false, winLineIndex: lineIndex };
+        } else if (maxCount === 4) {
+            result = { winAmount: BET_AMOUNT * 50, msg: '四個相同！x50倍！', bonus: false, free: false, winLineIndex: lineIndex };
+        } else if (maxCount === 3 && type === 'diamond') {
+            result = { winAmount: BET_AMOUNT * 20, msg: '三個💎！x20倍！', bonus: false, free: false, winLineIndex: lineIndex };
+        } else if (maxCount === 3) {
+            result = { winAmount: BET_AMOUNT * 5, msg: '三個相同！x5倍！', bonus: false, free: false, winLineIndex: lineIndex };
+        } else if (maxCount === 2 && type === 'diamond') {
+            result = { winAmount: BET_AMOUNT * 3, msg: '兩個💎！x3倍！', bonus: false, free: false, winLineIndex: lineIndex };
+        } else if (maxCount === 2) {
+            result = { winAmount: Math.round(BET_AMOUNT * 1.5), msg: '兩個相同！x1.5倍！', bonus: false, free: false, winLineIndex: lineIndex };
+        }
+
+        let starCount = 0, bellCount = 0;
+        line.forEach(idx => {
+            if (symbolType[idx] === 'star') starCount++;
+            if (symbolType[idx] === 'bell') bellCount++;
+        });
+
+        if (starCount === 3) {
+            result.bonus = true;
+            result.msg += ' 觸發BONUS GAME!';
+        }
+        if (bellCount === 3) {
+            result.free = true;
+            result.msg += ' 獲得一次免費轉盤!';
+        }
+
+        if (result.winAmount > bestResult.winAmount) {
+            bestResult = result;
+        }
     });
-    if (starCount === 3) {
-        bonus = true;
-        msg += ' 觸發BONUS GAME!';
-    }
-    if (bellCount === 3) {
-        free = true;
-        msg += ' 獲得一次免費轉盤!';
-    }
-    return { winAmount, msg, bonus, free };
+
+    return bestResult;
 }
 
 // 新增動畫樣式
 const style = document.createElement('style');
 style.innerHTML = `@keyframes bonus-pop {0%{transform:translate(-50%,-50%) scale(0.5);opacity:0;}40%{transform:translate(-50%,-50%) scale(1.2);opacity:1;}70%{transform:translate(-50%,-50%) scale(1);opacity:1;}100%{transform:translate(-50%,-50%) scale(0.7);opacity:0;}}`;
-document.head.appendChild(style); 
+document.head.appendChild(style);
+
+// 自動模式控制
+let isAutoMode = false;
+
+autoButton.addEventListener('click', () => {
+    isAutoMode = true;
+    autoButton.style.display = 'none';
+    stopAutoButton.style.display = 'inline-block';
+    if (!isSpinning) {
+        autoSpin();
+    }
+});
+
+stopAutoButton.addEventListener('click', () => {
+    isAutoMode = false;
+    autoButton.style.display = 'inline-block';
+    stopAutoButton.style.display = 'none';
+});
+
+async function autoSpin() {
+    while (isAutoMode && balance >= 10) {
+        await spin();
+        await sleep(1000);
+    }
+    if (balance < 10) {
+        isAutoMode = false;
+        autoButton.style.display = 'inline-block';
+        stopAutoButton.style.display = 'none';
+    }
+} 

@@ -10,31 +10,71 @@
     <div class="container">
         <h1>拉霸機遊戲</h1>
         <div class="slot-machine">
-            <div class="reels-group">
-                <div class="reel" id="reel1"><div class="reel-inner"></div></div>
-                <div class="reel" id="reel2"><div class="reel-inner"></div></div>
-                <div class="reel" id="reel3"><div class="reel-inner"></div></div>
-                <div class="reel" id="reel4"><div class="reel-inner"></div></div>
-                <div class="reel" id="reel5"><div class="reel-inner"></div></div>
+            <div class="reels-container">
+                <div class="win-lines">
+                    <div class="win-line top"></div>
+                    <div class="win-line middle"></div>
+                    <div class="win-line bottom"></div>
+                </div>
+                <div class="reels-group">
+                    <div class="reel" id="reel1"><div class="reel-inner"></div></div>
+                    <div class="reel" id="reel2"><div class="reel-inner"></div></div>
+                    <div class="reel" id="reel3"><div class="reel-inner"></div></div>
+                    <div class="reel" id="reel4"><div class="reel-inner"></div></div>
+                    <div class="reel" id="reel5"><div class="reel-inner"></div></div>
+                </div>
             </div>
             <div class="lever-area">
                 <div class="lever" id="lever">
                     <div class="lever-knob"></div>
                 </div>
             </div>
-            <div class="buttons">
+            <div class="controls">
                 <button id="spin-button">開始遊戲</button>
+                <button id="auto-button">自動模式</button>
+                <button id="stop-auto" style="display: none;">停止自動</button>
             </div>
         </div>
-        <div class="score">
-            <p>餘額: <span id="balance">1000</span></p>
-            <p>下注金額: <input type="number" id="bet" value="10" min="1" max="100"></p>
-        </div>
-        <div class="paytable">
-            <h2>獎金表</h2>
-            <p>五個相同: 10倍</p>
-            <p>四個相同: 5倍</p>
-            <p>三個相同: 3倍</p>
+        <div class="game-info">
+            <div class="score">
+                <p>餘額: <span id="balance">1000</span></p>
+                <p>下注金額: <input type="number" id="bet" value="10" min="1" max="100"></p>
+            </div>
+            <div class="paytable">
+                <h2>獎金表</h2>
+                <div class="symbol-info">
+                    <div class="symbol">
+                        <img src="71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg" alt="鑽石">
+                        <div class="multipliers">
+                            <p>5個: 1000倍</p>
+                            <p>4個: 100倍</p>
+                            <p>3個: 20倍</p>
+                            <p>2個: 3倍</p>
+                        </div>
+                    </div>
+                    <div class="symbol">
+                        <img src="88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg" alt="星星">
+                        <div class="multipliers">
+                            <p>3個: BONUS遊戲</p>
+                        </div>
+                    </div>
+                    <div class="symbol">
+                        <img src="A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg" alt="鈴鐺">
+                        <div class="multipliers">
+                            <p>3個: 免費轉盤</p>
+                        </div>
+                    </div>
+                    <div class="symbol">
+                        <img src="C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg" alt="一般符號">
+                        <div class="multipliers">
+                            <p>5個: 500倍</p>
+                            <p>4個: 50倍</p>
+                            <p>3個: 5倍</p>
+                            <p>2個: 1.5倍</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <div id="message" class="message"></div>
     </div>
