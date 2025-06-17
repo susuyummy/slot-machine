@@ -88,11 +88,14 @@ window.onload = () => {
         });
     }
     
+    // 初始化輪盤
     renderReels(Array(REEL_COUNT).fill(0));
     
     // 設置按鈕事件
-    spinButton.onclick = () => {
-        if (!isSpinning) spin();
+    spinButton.onclick = async () => {
+        if (!isSpinning) {
+            await spin();
+        }
     };
     
     // 設置下注輸入
@@ -262,6 +265,13 @@ async function spin() {
             spinButton.disabled = false;
             autoButton.disabled = false;
             betInput.disabled = false;
+            
+            // 重置所有輪盤的樣式
+            reels.forEach(reel => {
+                const inner = reel.querySelector('.reel-inner');
+                inner.style.transition = 'none';
+                inner.style.transform = 'translateY(0)';
+            });
         }, 300);
     }
 }
@@ -298,79 +308,86 @@ function getRandomBoard() {
 // 動畫滾輪，三格都滾動
 async function spinAllReels53(duration = 2500) {
     return new Promise(async (resolve) => {
-        let wheels = [];
-        for (let col = 0; col < reelCount; col++) {
-            let wheel = [];
-            for (let i = 0; i < wheelLength; i++) {
-                wheel.push(Math.floor(Math.random() * symbols.length));
-            }
-            wheels.push(wheel);
-        }
-
-        // 初始化輪盤
-        for (let col = 0; col < reelCount; col++) {
-            const inner = reels[col].querySelector('.reel-inner');
-            inner.innerHTML = '';
-            for (let i = 0; i < wheelLength; i++) {
-                inner.innerHTML += getSymbolImg(symbols[wheels[col][i]]);
-            }
-            inner.style.transform = 'translateY(0)';
-        }
-
-        let currentOffset = 0;
-        let steps = 40;
-        let minInterval = 20;
-        let maxInterval = 180;
-
-        // 生成最終結果
-        let finalBoard = Array.from({length: reelCount}, () => 
-            Array.from({length: rowCount}, () => Math.floor(Math.random() * symbols.length))
-        );
-
-        // 主要動畫循環
-        for (let i = 0; i < steps; i++) {
-            currentOffset++;
+        try {
+            let wheels = [];
             for (let col = 0; col < reelCount; col++) {
-                wheels[col][(currentOffset + wheelLength - 1) % wheelLength] = Math.floor(Math.random() * symbols.length);
-                const inner = reels[col].querySelector('.reel-inner');
-                inner.style.transition = `transform ${i < steps - 5 ? 0.06 : 0.1}s cubic-bezier(0.23, 1, 0.32, 1)`;
-                inner.style.transform = `translateY(-${currentOffset * 60}px)`;
-            }
-
-            let t = i / (steps - 1);
-            let interval = minInterval + (maxInterval - minInterval) * Math.pow(t, 2.5);
-            await new Promise(r => setTimeout(r, interval));
-
-            if ((currentOffset + rowCount) >= wheelLength) {
-                for (let col = 0; col < reelCount; col++) {
-                    const inner = reels[col].querySelector('.reel-inner');
-                    let newImgs = '';
-                    for (let i = 0; i < wheelLength; i++) {
-                        const idx = (currentOffset + i) % wheelLength;
-                        newImgs += getSymbolImg(symbols[wheels[col][idx]]);
-                    }
-                    inner.innerHTML = newImgs;
-                    inner.style.transition = 'none';
-                    inner.style.transform = 'translateY(0)';
+                let wheel = [];
+                for (let i = 0; i < wheelLength; i++) {
+                    wheel.push(Math.floor(Math.random() * symbols.length));
                 }
-                currentOffset = 0;
+                wheels.push(wheel);
             }
-        }
 
-        // 最終停止位置
-        for (let col = 0; col < reelCount; col++) {
-            const inner = reels[col].querySelector('.reel-inner');
-            inner.innerHTML = '';
-            for (let i = 0; i < rowCount; i++) {
-                inner.innerHTML += getSymbolImg(symbols[finalBoard[col][i]]);
+            // 初始化輪盤
+            for (let col = 0; col < reelCount; col++) {
+                const inner = reels[col].querySelector('.reel-inner');
+                inner.innerHTML = '';
+                for (let i = 0; i < wheelLength; i++) {
+                    inner.innerHTML += getSymbolImg(symbols[wheels[col][i]]);
+                }
+                inner.style.transform = 'translateY(0)';
             }
-            inner.style.transform = 'translateY(0)';
-        }
 
-        // 確保動畫完全結束後再解除鎖定
-        setTimeout(() => {
-            resolve(finalBoard);
-        }, 300);
+            let currentOffset = 0;
+            let steps = 40;
+            let minInterval = 20;
+            let maxInterval = 180;
+
+            // 生成最終結果
+            let finalBoard = Array.from({length: reelCount}, () => 
+                Array.from({length: rowCount}, () => Math.floor(Math.random() * symbols.length))
+            );
+
+            // 主要動畫循環
+            for (let i = 0; i < steps; i++) {
+                currentOffset++;
+                for (let col = 0; col < reelCount; col++) {
+                    wheels[col][(currentOffset + wheelLength - 1) % wheelLength] = Math.floor(Math.random() * symbols.length);
+                    const inner = reels[col].querySelector('.reel-inner');
+                    inner.style.transition = `transform ${i < steps - 5 ? 0.06 : 0.1}s cubic-bezier(0.23, 1, 0.32, 1)`;
+                    inner.style.transform = `translateY(-${currentOffset * 60}px)`;
+                }
+
+                let t = i / (steps - 1);
+                let interval = minInterval + (maxInterval - minInterval) * Math.pow(t, 2.5);
+                await new Promise(r => setTimeout(r, interval));
+
+                if ((currentOffset + rowCount) >= wheelLength) {
+                    for (let col = 0; col < reelCount; col++) {
+                        const inner = reels[col].querySelector('.reel-inner');
+                        let newImgs = '';
+                        for (let i = 0; i < wheelLength; i++) {
+                            const idx = (currentOffset + i) % wheelLength;
+                            newImgs += getSymbolImg(symbols[wheels[col][idx]]);
+                        }
+                        inner.innerHTML = newImgs;
+                        inner.style.transition = 'none';
+                        inner.style.transform = 'translateY(0)';
+                    }
+                    currentOffset = 0;
+                }
+            }
+
+            // 最終停止位置
+            for (let col = 0; col < reelCount; col++) {
+                const inner = reels[col].querySelector('.reel-inner');
+                inner.innerHTML = '';
+                for (let i = 0; i < rowCount; i++) {
+                    inner.innerHTML += getSymbolImg(symbols[finalBoard[col][i]]);
+                }
+                inner.style.transform = 'translateY(0)';
+            }
+
+            // 確保動畫完全結束後再解除鎖定
+            setTimeout(() => {
+                resolve(finalBoard);
+            }, 300);
+        } catch (error) {
+            console.error('Animation error:', error);
+            resolve(Array.from({length: reelCount}, () => 
+                Array.from({length: rowCount}, () => Math.floor(Math.random() * symbols.length))
+            ));
+        }
     });
 }
 
