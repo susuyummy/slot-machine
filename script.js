@@ -367,7 +367,7 @@ function getSymbolImg(symbol) {
     return `<img src="${symbol}" alt="水果">`;
 }
 
-// 修改 getWinResult53 函數以支持多條中獎線
+// 修改 getWinResult53 函數以正確比較符號類型
 function getWinResult53(board, betAmount) {
     try {
         let result = { winAmount: 0, msg: '', bonus: false, free: false, winLines: [] };
@@ -385,11 +385,14 @@ function getWinResult53(board, betAmount) {
             
             // 計算連續相同符號的數量（從左開始）
             let currentSymbol = line[0];
+            let currentType = symbolType[currentSymbol];
             let count = 1;
             let maxCount = 1;
             
+            // 從左到右檢查連續相同類型的符號
             for (let i = 1; i < line.length; i++) {
-                if (line[i] === currentSymbol) {
+                const nextType = symbolType[line[i]];
+                if (nextType === currentType) {
                     count++;
                     maxCount = Math.max(maxCount, count);
                 } else {
@@ -399,12 +402,11 @@ function getWinResult53(board, betAmount) {
             
             // 如果有至少3個連續符號
             if (maxCount >= 3) {
-                const type = symbolType[currentSymbol];
                 let lineWin = 0;
                 let lineMsg = '';
                 
                 // 計算獎金
-                if (type === 'diamond') {
+                if (currentType === 'diamond') {
                     if (maxCount === 5) {
                         lineWin = betAmount * 1000;
                         lineMsg = '五個💎！x1000倍！';
@@ -436,18 +438,48 @@ function getWinResult53(board, betAmount) {
                 
                 // 檢查特殊符號（只需要檢查連續的3個）
                 if (maxCount >= 3) {
-                    if (type === 'star') {
+                    if (currentType === 'star') {
                         result.bonus = true;
                         result.msg += ' 觸發BONUS GAME!';
-                    } else if (type === 'bell') {
+                    } else if (currentType === 'bell') {
                         result.free = true;
                         result.msg += ' 獲得一次免費轉盤!';
                     }
                 }
             }
         });
+
+        // 額外檢查任意位置的星星和鈴鐺
+        let starCount = 0;
+        let bellCount = 0;
         
-        console.log('計算結果：', result);
+        // 遍歷整個盤面檢查特殊符號
+        for (let col = 0; col < reelCount; col++) {
+            for (let row = 0; row < rowCount; row++) {
+                const symbolIndex = board[col][row];
+                const type = symbolType[symbolIndex];
+                if (type === 'star') starCount++;
+                if (type === 'bell') bellCount++;
+            }
+        }
+
+        // 檢查是否有足夠的特殊符號（不需要連線）
+        if (starCount >= 3 && !result.bonus) {
+            result.bonus = true;
+            result.msg += ' 觸發BONUS GAME!';
+        }
+        if (bellCount >= 3 && !result.free) {
+            result.free = true;
+            result.msg += ' 獲得一次免費轉盤!';
+        }
+        
+        console.log('計算結果：', {
+            board,
+            result,
+            starCount,
+            bellCount
+        });
+        
         return result;
     } catch (error) {
         console.error('計算獎金錯誤：', error);
