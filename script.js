@@ -107,6 +107,9 @@ function validateSymbolsConfig() {
     const typesLength = SYMBOLS.types.length;
     const namesLength = SYMBOLS.names.length;
     
+    console.log('🔍 檢查 SYMBOLS 配置...');
+    
+    // 檢查陣列長度一致性
     if (filesLength !== typesLength || typesLength !== namesLength) {
         console.error('❌ SYMBOLS 配置錯誤！陣列長度不一致：', {
             files: filesLength,
@@ -116,11 +119,68 @@ function validateSymbolsConfig() {
         return false;
     }
     
+    // 檢查最小符號數量（至少6個）
+    if (filesLength < 6) {
+        console.error('❌ SYMBOLS 符號數量不足！至少需要6個符號，目前只有', filesLength, '個');
+        return false;
+    }
+    
+    // 檢查每個符號的完整性
+    for (let i = 0; i < filesLength; i++) {
+        if (!SYMBOLS.files[i] || !SYMBOLS.types[i] || !SYMBOLS.names[i]) {
+            console.error(`❌ 符號 ${i} 配置不完整：`, {
+                file: SYMBOLS.files[i],
+                type: SYMBOLS.types[i],
+                name: SYMBOLS.names[i]
+            });
+            return false;
+        }
+    }
+    
     console.log('✅ SYMBOLS 配置正確，共有', filesLength, '個符號：');
     for (let i = 0; i < filesLength; i++) {
         console.log(`  ${i}: ${SYMBOLS.names[i]} (${SYMBOLS.types[i]}) - ${SYMBOLS.files[i]}`);
     }
     return true;
+}
+
+// ===== 盤面資料驗證 =====
+function validateBoard(board) {
+    if (!board || !Array.isArray(board)) {
+        console.error('❌ 盤面資料無效：', board);
+        return false;
+    }
+    
+    if (board.length !== CONFIG.REEL_COUNT) {
+        console.error('❌ 盤面轉輪數量錯誤：期望', CONFIG.REEL_COUNT, '實際', board.length);
+        return false;
+    }
+    
+    for (let col = 0; col < board.length; col++) {
+        if (!Array.isArray(board[col]) || board[col].length !== CONFIG.ROW_COUNT) {
+            console.error(`❌ 轉輪 ${col} 資料錯誤：期望 ${CONFIG.ROW_COUNT} 排，實際`, board[col]);
+            return false;
+        }
+        
+        for (let row = 0; row < board[col].length; row++) {
+            const symbolIndex = board[col][row];
+            if (typeof symbolIndex !== 'number' || symbolIndex < 0 || symbolIndex >= SYMBOLS.files.length) {
+                console.error(`❌ 位置 [${col},${row}] 符號索引無效：${symbolIndex}，有效範圍 0-${SYMBOLS.files.length - 1}`);
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+// ===== 符號索引修復 =====
+function fixSymbolIndex(index, position = '') {
+    if (typeof index !== 'number' || index < 0 || index >= SYMBOLS.files.length) {
+        console.warn(`⚠️  修復無效符號索引 ${position}: ${index} → 0`);
+        return 0; // 默認使用第一個符號
+    }
+    return index;
 }
 
 // ===== 工具函數 =====
@@ -130,9 +190,32 @@ class GameUtils {
     }
     
     static getRandomBoard() {
-        return Array.from({length: CONFIG.REEL_COUNT}, () =>
-            Array.from({length: CONFIG.ROW_COUNT}, () => 
-                Math.floor(Math.random() * SYMBOLS.files.length)));
+        const maxIndex = SYMBOLS.files.length - 1;
+        const board = Array.from({length: CONFIG.REEL_COUNT}, (_, col) =>
+            Array.from({length: CONFIG.ROW_COUNT}, (_, row) => {
+                const randomIndex = Math.floor(Math.random() * SYMBOLS.files.length);
+                const safeIndex = fixSymbolIndex(randomIndex, `[${col},${row}]`);
+                return safeIndex;
+            })
+        );
+        
+        // 驗證生成的盤面
+        if (!validateBoard(board)) {
+            console.error('❌ 生成的隨機盤面無效，使用安全盤面');
+            return this.getSafeBoard();
+        }
+        
+        GameUtils.debugLog('✅ 生成隨機盤面：', board);
+        return board;
+    }
+    
+    static getSafeBoard() {
+        // 生成安全的預設盤面（全部使用第一個符號）
+        const safeBoard = Array.from({length: CONFIG.REEL_COUNT}, () =>
+            Array.from({length: CONFIG.ROW_COUNT}, () => 0)
+        );
+        console.log('🛡️  使用安全盤面：', safeBoard);
+        return safeBoard;
     }
     
     static saveBalance() {
@@ -196,11 +279,30 @@ class GameUtils {
 // ===== 渲染系統 =====
 class RenderSystem {
     static renderReels(board) {
-        GameUtils.debugLog('Rendering board:', board);
+        console.log('🎨 開始渲染轉輪，盤面資料：', board);
+        
+        // A. 驗證盤面資料
+        if (!validateBoard(board)) {
+            console.error('❌ 盤面資料驗證失敗，使用安全盤面');
+            board = GameUtils.getSafeBoard();
+        }
+        
+        let renderErrors = [];
         
         for (let col = 0; col < CONFIG.REEL_COUNT; col++) {
             const reel = elements.reels[col];
+            if (!reel) {
+                console.error(`❌ 找不到轉輪 ${col} 的DOM元素`);
+                renderErrors.push(`轉輪${col}DOM缺失`);
+                continue;
+            }
+            
             const inner = reel.querySelector('.reel-inner');
+            if (!inner) {
+                console.error(`❌ 找不到轉輪 ${col} 的內容容器`);
+                renderErrors.push(`轉輪${col}內容容器缺失`);
+                continue;
+            }
             
             // 清除舊內容並重置樣式
             inner.innerHTML = '';
@@ -209,39 +311,112 @@ class RenderSystem {
             inner.style.display = 'flex';
             inner.style.flexDirection = 'column';
             
+            let symbolsRendered = 0;
+            
             for (let row = 0; row < CONFIG.ROW_COUNT; row++) {
-                const symbolIndex = board[col][row];
-                const img = document.createElement('img');
-                img.src = SYMBOLS.files[symbolIndex];
-                img.alt = SYMBOLS.names[symbolIndex];
-                img.style.cssText = 'width:66px;height:66px;object-fit:cover;border:2px solid #fff;border-radius:5px;margin:2px auto;background:#f8f9fa;display:block;flex-shrink:0;';
+                const symbolIndex = fixSymbolIndex(board[col][row], `[${col},${row}]`);
                 
-                // 添加調試屬性
-                img.dataset.col = col;
-                img.dataset.row = row;
-                img.dataset.symbol = symbolIndex;
+                // B. 檢查符號索引有效性
+                console.log(`🔍 位置[${col},${row}] 符號索引:${symbolIndex} 檔案:${SYMBOLS.files[symbolIndex]} 名稱:${SYMBOLS.names[symbolIndex]}`);
                 
-                img.onerror = () => {
-                    // 如果圖片加載失敗，顯示 emoji
-                    console.warn(`圖片加載失敗: ${img.src}`);
-                    img.style.display = 'none';
-                    const emoji = document.createElement('div');
-                    emoji.style.cssText = 'width:66px;height:66px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:#f8f9fa;border:2px solid #fff;border-radius:5px;margin:2px auto;flex-shrink:0;';
-                    emoji.textContent = SYMBOLS.names[symbolIndex].split(' ')[0];
-                    emoji.dataset.col = col;
-                    emoji.dataset.row = row;
-                    emoji.dataset.symbol = symbolIndex;
-                    inner.appendChild(emoji);
-                };
-                
-                inner.appendChild(img);
+                const symbolElement = this.createSymbolElement(symbolIndex, col, row);
+                if (symbolElement) {
+                    inner.appendChild(symbolElement);
+                    symbolsRendered++;
+                } else {
+                    renderErrors.push(`位置[${col},${row}]符號創建失敗`);
+                }
             }
             
-            GameUtils.debugLog(`Reel ${col} rendered with ${inner.children.length} symbols`);
+            console.log(`✅ 轉輪 ${col} 渲染完成，符號數量: ${symbolsRendered}/${CONFIG.ROW_COUNT}`);
+            
+            if (symbolsRendered === 0) {
+                // 如果沒有任何符號渲染成功，創建緊急fallback
+                this.createEmergencyFallback(inner, col);
+                renderErrors.push(`轉輪${col}需要緊急fallback`);
+            }
+        }
+        
+        // 記錄渲染結果
+        if (renderErrors.length > 0) {
+            console.warn('⚠️  渲染過程中發現問題：', renderErrors);
+            GameUtils.showMessage(`⚠️  部分符號顯示異常：${renderErrors.join(', ')}`, '#f39c12');
+        } else {
+            console.log('✅ 所有轉輪渲染成功');
         }
         
         gameState.lastBoard = board;
-        GameUtils.debugLog('Board rendered successfully, board:', board);
+        GameUtils.debugLog('Board rendered successfully, final board:', board);
+    }
+    
+    static createSymbolElement(symbolIndex, col, row) {
+        try {
+            // 創建圖片元素
+            const img = document.createElement('img');
+            img.src = SYMBOLS.files[symbolIndex];
+            img.alt = SYMBOLS.names[symbolIndex];
+            img.style.cssText = 'width:66px;height:66px;object-fit:cover;border:2px solid #fff;border-radius:5px;margin:2px auto;background:#f8f9fa;display:block;flex-shrink:0;';
+            
+            // 添加調試屬性
+            img.dataset.col = col;
+            img.dataset.row = row;
+            img.dataset.symbol = symbolIndex;
+            
+            // C. 圖片載入錯誤處理
+            img.onerror = () => {
+                console.warn(`🖼️  圖片載入失敗: ${img.src} 位置[${col},${row}]`);
+                this.replaceWithEmoji(img, symbolIndex, col, row);
+            };
+            
+            // 設置載入超時（5秒）
+            setTimeout(() => {
+                if (!img.complete || img.naturalHeight === 0) {
+                    console.warn(`⏰ 圖片載入超時: ${img.src} 位置[${col},${row}]`);
+                    this.replaceWithEmoji(img, symbolIndex, col, row);
+                }
+            }, 5000);
+            
+            return img;
+            
+        } catch (error) {
+            console.error(`❌ 創建符號元素失敗 位置[${col},${row}]:`, error);
+            return this.createEmojiElement(symbolIndex, col, row);
+        }
+    }
+    
+    static replaceWithEmoji(imgElement, symbolIndex, col, row) {
+        const emoji = this.createEmojiElement(symbolIndex, col, row);
+        if (emoji && imgElement.parentNode) {
+            imgElement.parentNode.replaceChild(emoji, imgElement);
+            console.log(`🔄 已替換為emoji 位置[${col},${row}]`);
+        }
+    }
+    
+    static createEmojiElement(symbolIndex, col, row) {
+        try {
+            const emoji = document.createElement('div');
+            emoji.style.cssText = 'width:66px;height:66px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:#f8f9fa;border:2px solid #fff;border-radius:5px;margin:2px auto;flex-shrink:0;';
+            emoji.textContent = SYMBOLS.names[symbolIndex]?.split(' ')[0] || '❓';
+            emoji.dataset.col = col;
+            emoji.dataset.row = row;
+            emoji.dataset.symbol = symbolIndex;
+            emoji.title = `${SYMBOLS.names[symbolIndex]} (${symbolIndex})`;
+            return emoji;
+        } catch (error) {
+            console.error(`❌ 創建emoji元素失敗 位置[${col},${row}]:`, error);
+            return null;
+        }
+    }
+    
+    static createEmergencyFallback(container, col) {
+        console.log(`🚨 為轉輪 ${col} 創建緊急fallback`);
+        for (let row = 0; row < CONFIG.ROW_COUNT; row++) {
+            const fallback = document.createElement('div');
+            fallback.style.cssText = 'width:66px;height:66px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;background:#ff6b6b;border:2px solid #fff;border-radius:5px;margin:2px auto;flex-shrink:0;color:white;';
+            fallback.textContent = '⚠️';
+            fallback.title = `緊急fallback 位置[${col},${row}]`;
+            container.appendChild(fallback);
+        }
     }
     
     static showWinLines(lineIndexes) {
@@ -713,12 +888,36 @@ class GameSystem {
     }
     
     static resetGameState() {
-        // 立即重置狀態，不要延遲
+        console.log('🔄 重置遊戲狀態...');
+        console.log('重置前狀態：', {
+            isSpinning: gameState.isSpinning,
+            isAutoMode: gameState.isAutoMode,
+            freeSpin: gameState.freeSpin,
+            balance: gameState.balance
+        });
+        
+        // C. 確保狀態正確重置
         gameState.isSpinning = false;
         this.updateButtonStates();
         
-        // 不要重新渲染盤面，保持動畫結果
-        GameUtils.debugLog('Game state reset, spinning =', gameState.isSpinning);
+        // 檢查按鈕狀態
+        const spinDisabled = elements.spinButton.disabled;
+        const autoDisabled = elements.autoButton.disabled;
+        
+        console.log('重置後狀態：', {
+            isSpinning: gameState.isSpinning,
+            spinButtonDisabled: spinDisabled,
+            autoButtonDisabled: autoDisabled,
+            lastBoard: gameState.lastBoard ? '有' : '無'
+        });
+        
+        // 如果按鈕仍然被禁用，強制啟用
+        if (spinDisabled && !gameState.isSpinning) {
+            console.warn('⚠️  強制啟用轉動按鈕');
+            elements.spinButton.disabled = false;
+        }
+        
+        GameUtils.debugLog('✅ 遊戲狀態重置完成');
     }
 }
 
@@ -857,39 +1056,109 @@ class EventHandler {
 // ===== 初始化 =====
 class GameInitializer {
     static init() {
-        GameUtils.debugLog('Initializing game...');
+        console.log('🚀 開始初始化遊戲...');
         
-        // 驗證符號配置
-        if (!validateSymbolsConfig()) {
-            alert('遊戲配置錯誤，請檢查符號設定！');
-            return;
+        try {
+            // A. 驗證符號配置
+            if (!validateSymbolsConfig()) {
+                alert('❌ 遊戲配置錯誤，請檢查符號設定！');
+                return;
+            }
+            
+            // B. 檢查DOM元素
+            const missingElements = [];
+            if (!elements.spinButton) missingElements.push('轉動按鈕');
+            if (!elements.balanceDisplay) missingElements.push('餘額顯示');
+            if (!elements.messageDiv) missingElements.push('訊息區域');
+            if (elements.reels.some(reel => !reel)) missingElements.push('轉輪容器');
+            
+            if (missingElements.length > 0) {
+                console.error('❌ 缺少必要的DOM元素：', missingElements);
+                alert(`❌ 頁面載入不完整，缺少：${missingElements.join(', ')}`);
+                return;
+            }
+            
+            // 載入餘額
+            GameUtils.loadBalance();
+            
+            // 初始化下注
+            BettingSystem.setBet(CONFIG.MIN_BET);
+            
+            // 初始化模式
+            ModeSystem.updateModeButtons();
+            ModeSystem.updateModeDescription();
+            
+            // C. 初始化盤面（使用安全檢查）
+            console.log('🎲 生成初始盤面...');
+            const initialBoard = GameUtils.getRandomBoard();
+            RenderSystem.renderReels(initialBoard);
+            
+            // 初始化事件
+            EventHandler.init();
+            
+            // D. 最終狀態檢查
+            console.log('🔍 最終狀態檢查：', {
+                symbolsCount: SYMBOLS.files.length,
+                reelsCount: CONFIG.REEL_COUNT,
+                rowsCount: CONFIG.ROW_COUNT,
+                balance: gameState.balance,
+                initialBet: gameState.currentBet,
+                lastBoard: gameState.lastBoard ? '已設置' : '未設置'
+            });
+            
+            console.log('✅ 遊戲初始化成功！');
+            GameUtils.showMessage('🎰 歡迎來到拉霸機遊戲！按空白鍵或點擊按鈕開始遊戲', '#3498db');
+            
+        } catch (error) {
+            console.error('❌ 初始化過程中發生錯誤：', error);
+            alert('❌ 遊戲初始化失敗，請重新載入頁面');
         }
-        
-        // 載入餘額
-        GameUtils.loadBalance();
-        
-        // 初始化下注
-        BettingSystem.setBet(CONFIG.MIN_BET);
-        
-        // 初始化模式
-        ModeSystem.updateModeButtons();
-        ModeSystem.updateModeDescription();
-        
-        // 初始化盤面
-        const initialBoard = GameUtils.getRandomBoard();
-        RenderSystem.renderReels(initialBoard);
-        
-        // 初始化事件
-        EventHandler.init();
-        
-        GameUtils.debugLog('Game initialized successfully');
-        GameUtils.showMessage('🎰 歡迎來到拉霸機遊戲！按空白鍵或點擊按鈕開始遊戲', '#3498db');
     }
 }
 
 // ===== 遊戲啟動 =====
 window.addEventListener('DOMContentLoaded', () => {
     GameInitializer.init();
+});
+
+// ===== 緊急修復函數 =====
+function emergencyRecover() {
+    console.log('🚨 執行緊急修復...');
+    
+    try {
+        // 重置遊戲狀態
+        gameState.isSpinning = false;
+        gameState.isAutoMode = false;
+        gameState.freeSpin = false;
+        
+        // 啟用所有按鈕
+        if (elements.spinButton) elements.spinButton.disabled = false;
+        if (elements.autoButton) elements.autoButton.disabled = false;
+        
+        // 重新渲染安全盤面
+        const safeBoard = GameUtils.getSafeBoard();
+        RenderSystem.renderReels(safeBoard);
+        
+        // 清除訊息
+        GameUtils.clearMessage();
+        GameUtils.showMessage('🔧 緊急修復完成，遊戲已重置', '#3498db');
+        
+        console.log('✅ 緊急修復成功');
+        return true;
+        
+    } catch (error) {
+        console.error('❌ 緊急修復失敗：', error);
+        return false;
+    }
+}
+
+// ===== 全局錯誤處理 =====
+window.addEventListener('error', (event) => {
+    console.error('🚨 全局錯誤：', event.error);
+    if (event.error?.message?.includes('Cannot read') || event.error?.message?.includes('undefined')) {
+        console.log('🔧 嘗試自動修復...');
+        setTimeout(emergencyRecover, 1000);
+    }
 });
 
 // ===== 全局函數（用於調試） =====
@@ -901,5 +1170,12 @@ window.gameDebug = {
         GameUtils.updateBalanceDisplay();
         GameUtils.saveBalance();
     },
-    getBoard: () => gameState.lastBoard
+    getBoard: () => gameState.lastBoard,
+    validateBoard: (board) => validateBoard(board),
+    validateSymbols: () => validateSymbolsConfig(),
+    emergencyRecover: () => emergencyRecover(),
+    forceRender: (board) => {
+        const safeBoard = board || GameUtils.getRandomBoard();
+        RenderSystem.renderReels(safeBoard);
+    }
 }; 
