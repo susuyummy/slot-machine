@@ -174,26 +174,34 @@ class RenderSystem {
         for (let col = 0; col < CONFIG.REEL_COUNT; col++) {
             const reel = elements.reels[col];
             const inner = reel.querySelector('.reel-inner');
+            
+            // 清除舊內容
             inner.innerHTML = '';
+            inner.style.transition = 'none';
+            inner.style.transform = 'translateY(0px)';
             
             for (let row = 0; row < CONFIG.ROW_COUNT; row++) {
                 const symbolIndex = board[col][row];
                 const img = document.createElement('img');
                 img.src = SYMBOLS.files[symbolIndex];
                 img.alt = SYMBOLS.names[symbolIndex];
+                img.style.cssText = 'width:70px;height:70px;object-fit:cover;border:2px solid #fff;border-radius:5px;margin:2px;background:#f8f9fa;display:block;';
+                
                 img.onerror = () => {
                     // 如果圖片加載失敗，顯示 emoji
                     img.style.display = 'none';
                     const emoji = document.createElement('div');
-                    emoji.style.cssText = 'width:70px;height:70px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:#f8f9fa;';
+                    emoji.style.cssText = 'width:70px;height:70px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:#f8f9fa;border:2px solid #fff;border-radius:5px;margin:2px;';
                     emoji.textContent = SYMBOLS.names[symbolIndex].split(' ')[0];
                     inner.appendChild(emoji);
                 };
+                
                 inner.appendChild(img);
             }
         }
         
         gameState.lastBoard = board;
+        GameUtils.debugLog('Board rendered successfully');
     }
     
     static showWinLines(lineIndexes) {
@@ -281,14 +289,14 @@ class AnimationSystem {
                     const inner = reel.querySelector('.reel-inner');
                     
                     // 創建足夠的符號用於動畫
-                    const symbolCount = 20; // 減少符號數量提高性能
+                    const symbolCount = 15;
                     inner.innerHTML = '';
                     
                     for (let i = 0; i < symbolCount; i++) {
                         const img = document.createElement('img');
                         img.src = SYMBOLS.files[Math.floor(Math.random() * SYMBOLS.files.length)];
                         img.alt = 'symbol';
-                        img.style.cssText = 'width:70px;height:70px;object-fit:cover;border:2px solid #fff;border-radius:5px;margin:2px;background:#f8f9fa;';
+                        img.style.cssText = 'width:70px;height:70px;object-fit:cover;border:2px solid #fff;border-radius:5px;margin:2px;background:#f8f9fa;display:block;';
                         inner.appendChild(img);
                     }
                     
@@ -298,19 +306,25 @@ class AnimationSystem {
                     
                     // 開始動畫
                     const animationDuration = duration + (col * 200); // 錯開停止時間
-                    const animation = this.animateReel(inner, animationDuration, finalBoard[col]);
+                    const animation = this.animateReel(inner, animationDuration);
                     reelAnimations.push(animation);
                 }
                 
                 // 等待所有動畫完成
                 Promise.all(reelAnimations).then(() => {
-                    // 顯示最終結果
-                    RenderSystem.renderReels(finalBoard);
+                    // 清除所有動畫狀態
+                    elements.reels.forEach(reel => {
+                        const inner = reel.querySelector('.reel-inner');
+                        inner.style.transition = 'none';
+                        inner.style.transform = 'translateY(0px)';
+                    });
                     
+                    // 延遲顯示最終結果，確保動畫完全結束
                     setTimeout(() => {
+                        RenderSystem.renderReels(finalBoard);
                         GameUtils.debugLog('Animation completed, final board:', finalBoard);
                         resolve(finalBoard);
-                    }, 200);
+                    }, 300);
                 });
                 
             } catch (error) {
@@ -322,10 +336,11 @@ class AnimationSystem {
         });
     }
     
-    static animateReel(inner, duration, finalColumn) {
+    static animateReel(inner) {
         return new Promise((resolve) => {
             const startTime = performance.now();
-            const totalDistance = 1400; // 總移動距離
+            const duration = 1500 + Math.random() * 1000; // 隨機動畫時間
+            const totalDistance = 1050; // 總移動距離
             
             const animate = (currentTime) => {
                 const elapsed = currentTime - startTime;
@@ -564,11 +579,9 @@ class GameSystem {
             gameState.isSpinning = false;
             this.updateButtonStates();
             
-            // 確保最終盤面正確顯示
-            if (gameState.lastBoard) {
-                RenderSystem.renderReels(gameState.lastBoard);
-            }
-        }, 300);
+            // 不要重新渲染盤面，保持動畫結果
+            GameUtils.debugLog('Game state reset, spinning =', gameState.isSpinning);
+        }, 500);
     }
 }
 
