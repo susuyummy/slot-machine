@@ -7,8 +7,17 @@ console.log('🎰 標準拉霸機遊戲載入中...');
 const GAME_CONFIG = {
     REELS: 5,
     ROWS: 3,
-    SYMBOLS: ['🍒', '🍋', '🍇', '🔔', '⭐', '💎'],
-    SYMBOL_NAMES: ['櫻桃', '檸檬', '葡萄', '鈴鐺', '星星', '鑽石'],
+    SYMBOLS: [
+        'IMG_1538.JPG',                                           // 圖片1
+        'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg',    // 圖片2
+        'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg',    // 圖片3
+        'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg',    // 圖片4
+        '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg',    // 圖片5 - 免費轉盤觸發
+        '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg',    // 圖片6
+        'IMG_1385.JPG'                                           // 圖片7 - 最高價值
+    ],
+    SYMBOL_NAMES: ['圖片1', '圖片2', '圖片3', '圖片4', '圖片5', '圖片6', '圖片7'],
+    SYMBOL_EMOJIS: ['🎨', '🖼️', '🌟', '✨', '💫', '🎯', '🐰'], // 備用emoji
     PAYLINES: [
         [0, 1, 2, 3, 4],     // 第一排（上排）
         [5, 6, 7, 8, 9],     // 第二排（中排）
@@ -17,16 +26,17 @@ const GAME_CONFIG = {
         [10, 6, 2, 8, 14]    // 對角線2（下左到上右）
     ],
     PAYTABLE: {
-        '💎': { 3: 20, 4: 100, 5: 1000 },  // 鑽石 - 最高價值
-        '⭐': { 3: 5, 4: 50, 5: 500 },      // 星星
-        '🔔': { 3: 5, 4: 50, 5: 500 },      // 鈴鐺
-        '🍇': { 3: 5, 4: 50, 5: 500 },      // 葡萄
-        '🍋': { 3: 5, 4: 50, 5: 500 },      // 檸檬
-        '🍒': { 3: 5, 4: 50, 5: 500 }       // 櫻桃
+        'IMG_1385.JPG': { 3: 150, 4: 800, 5: 3000 },  // 圖片7 - 超級獎勵
+        '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg': { 3: 100, 4: 500, 5: 2000 }, // 圖片6
+        '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg': { 3: 50, 4: 200, 5: 1000 },  // 圖片5 - 免費轉盤
+        'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg': { 3: 30, 4: 100, 5: 500 },   // 圖片4
+        'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg': { 3: 20, 4: 80, 5: 300 },    // 圖片3
+        'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg': { 3: 15, 4: 60, 5: 200 },    // 圖片2
+        'IMG_1538.JPG': { 3: 10, 4: 40, 5: 100 }  // 圖片1
     },
     SPIN_DURATION: 2000,
-    MIN_BET: 10,
-    MAX_BET: 100,
+    MIN_BET: 1,
+    MAX_BET: 500,
     INITIAL_BALANCE: 1000
 };
 
@@ -34,7 +44,7 @@ const GAME_CONFIG = {
 class GameState {
     constructor() {
         this.balance = GAME_CONFIG.INITIAL_BALANCE;
-        this.currentBet = GAME_CONFIG.MIN_BET;
+        this.currentBet = 10;
         this.isSpinning = false;
         this.isAutoMode = false;
         this.freeSpins = 0;
@@ -50,10 +60,33 @@ class GameState {
     
     generateRandomBoard() {
         const board = [];
+        
+        // 定義符號權重（數字越大出現機率越高）
+        const symbolWeights = {
+            'IMG_1538.JPG': 25,                                           // 圖片1 - 最常見
+            'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg': 20,    // 圖片2 - 常見
+            'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg': 18,    // 圖片3 - 常見
+            'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg': 15,    // 圖片4 - 中等
+            '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg': 8,     // 圖片5 - 免費轉盤（稀有）
+            '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg': 10,    // 圖片6 - 少見
+            'IMG_1385.JPG': 4                                            // 圖片7 - 最稀有
+        };
+        
+        // 建立加權符號池
+        const weightedSymbols = [];
+        for (const [symbol, weight] of Object.entries(symbolWeights)) {
+            for (let i = 0; i < weight; i++) {
+                weightedSymbols.push(symbol);
+            }
+        }
+        
+        // 生成隨機盤面
         for (let i = 0; i < GAME_CONFIG.REELS * GAME_CONFIG.ROWS; i++) {
-            const randomSymbol = GAME_CONFIG.SYMBOLS[Math.floor(Math.random() * GAME_CONFIG.SYMBOLS.length)];
+            const randomIndex = Math.floor(Math.random() * weightedSymbols.length);
+            const randomSymbol = weightedSymbols[randomIndex];
             board.push(randomSymbol);
         }
+        
         return board;
     }
     
@@ -199,12 +232,49 @@ class DOMManager {
             
             for (let row = 0; row < GAME_CONFIG.ROWS; row++) {
                 const symbolIndex = reelIndex * GAME_CONFIG.ROWS + row;
-                const symbol = board[symbolIndex];
+                const symbolFile = board[symbolIndex];
                 
                 const symbolElement = document.createElement('div');
                 symbolElement.className = 'symbol';
                 symbolElement.dataset.index = symbolIndex;
-                symbolElement.textContent = symbol;
+                
+                // 檢查是否為圖片檔案
+                if (symbolFile && (symbolFile.includes('.jpg') || symbolFile.includes('.jpeg') || symbolFile.includes('.png') || symbolFile.includes('.JPG'))) {
+                    const img = document.createElement('img');
+                    img.src = symbolFile;
+                    img.alt = this.getSymbolName(symbolFile);
+                    img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 5px;';
+                    
+                    // 圖片載入失敗時顯示emoji符號
+                    img.onerror = () => {
+                        const symbolEmoji = this.getSymbolEmoji(symbolFile);
+                        symbolElement.innerHTML = '';
+                        symbolElement.textContent = symbolEmoji;
+                        symbolElement.style.fontSize = '2.5rem';
+                        symbolElement.style.color = '#fff';
+                        symbolElement.style.textAlign = 'center';
+                        symbolElement.style.display = 'flex';
+                        symbolElement.style.alignItems = 'center';
+                        symbolElement.style.justifyContent = 'center';
+                        symbolElement.style.background = 'linear-gradient(45deg, #666, #999)';
+                        symbolElement.style.borderRadius = '5px';
+                        console.log('🖼️ 圖片載入失敗，使用備用符號:', symbolFile, '->', symbolEmoji);
+                    };
+                    
+                    symbolElement.appendChild(img);
+                } else {
+                    // 顯示emoji符號作為備用
+                    const symbolEmoji = this.getSymbolEmoji(symbolFile) || '❓';
+                    symbolElement.textContent = symbolEmoji;
+                    symbolElement.style.fontSize = '2.5rem';
+                    symbolElement.style.color = '#fff';
+                    symbolElement.style.textAlign = 'center';
+                    symbolElement.style.display = 'flex';
+                    symbolElement.style.alignItems = 'center';
+                    symbolElement.style.justifyContent = 'center';
+                    symbolElement.style.background = 'linear-gradient(45deg, #666, #999)';
+                    symbolElement.style.borderRadius = '5px';
+                }
                 
                 content.appendChild(symbolElement);
             }
@@ -277,6 +347,16 @@ class DOMManager {
             }
         }, 2000);
     }
+    
+    getSymbolName(symbolFile) {
+        const index = GAME_CONFIG.SYMBOLS.indexOf(symbolFile);
+        return index >= 0 ? GAME_CONFIG.SYMBOL_NAMES[index] : '未知符號';
+    }
+    
+    getSymbolEmoji(symbolFile) {
+        const index = GAME_CONFIG.SYMBOLS.indexOf(symbolFile);
+        return index >= 0 ? GAME_CONFIG.SYMBOL_EMOJIS[index] : '❓';
+    }
 }
 
 // ===== 遊戲邏輯核心 =====
@@ -326,8 +406,8 @@ class GameLogic {
         let totalPayout = 0;
         let winningLines = [];
         let winningPositions = new Set();
-        let bellCount = 0;
-        let starCount = 0;
+        let freeSpinCount = 0;
+        let bonusCount = 0;
         
         // 檢查每條賠付線
         GAME_CONFIG.PAYLINES.forEach((line, lineIndex) => {
@@ -347,41 +427,58 @@ class GameLogic {
             }
         });
         
-        // 計算特殊符號（不限連線）
+        // 計算特殊符號（不限連線）- 免費轉盤觸發
         board.forEach(symbol => {
-            if (symbol === '🔔') bellCount++;
-            if (symbol === '⭐') starCount++;
+            if (symbol === '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg') {
+                freeSpinCount++;
+            }
+            // 可以在這裡添加其他特殊符號的邏輯
         });
         
         const finalWin = totalPayout * this.gameState.currentBet;
         
         console.log(`總賠付: ${totalPayout} × ${this.gameState.currentBet} = ${finalWin}`);
+        console.log(`免費轉盤符號數量: ${freeSpinCount}`);
+        
+        // 調整免費轉盤觸發條件：需要4個以上才觸發，給予8次免費轉動
+        let freeSpinsAwarded = 0;
+        if (freeSpinCount >= 5) {
+            freeSpinsAwarded = 15; // 5個符號 = 15次免費轉動
+        } else if (freeSpinCount >= 4) {
+            freeSpinsAwarded = 8;  // 4個符號 = 8次免費轉動
+        }
         
         return {
             totalWin: finalWin,
             winningLines,
             winningPositions: Array.from(winningPositions),
-            freeSpins: bellCount >= 3 ? 10 : 0,
-            bonusGame: starCount >= 3,
-            message: this.generateWinMessage(finalWin, winningLines.length, bellCount, starCount)
+            freeSpins: freeSpinsAwarded,
+            bonusGame: bonusCount >= 3,
+            message: this.generateWinMessage(finalWin, winningLines.length, freeSpinCount, bonusCount, freeSpinsAwarded)
         };
     }
     
-    generateWinMessage(winAmount, lineCount, bellCount, starCount) {
+    generateWinMessage(winAmount, lineCount, freeSpinCount, bonusCount, freeSpinsAwarded) {
         let message = '';
         
         if (winAmount > 0) {
             message += `🎊 中獎！贏得 ${winAmount} 點！(${lineCount}條賠付線中獎)`;
         } else {
-            message += '再試一次！記住：只有從最左側開始的連續3個以上相同符號才能中獎';
+            message += '再試一次！記住：只有從最左側開始的連續3個以上相同圖片才能中獎';
         }
         
-        if (bellCount >= 3) {
-            message += ` 🔔 觸發免費轉盤！(${bellCount}個鈴鐺)`;
+        if (freeSpinsAwarded > 0) {
+            if (freeSpinCount >= 5) {
+                message += ` 🎉 超級免費轉盤！${freeSpinCount}個圖片5觸發${freeSpinsAwarded}次免費轉動！`;
+            } else {
+                message += ` 🎁 觸發免費轉盤！${freeSpinCount}個圖片5獲得${freeSpinsAwarded}次免費轉動！`;
+            }
+        } else if (freeSpinCount === 3) {
+            message += ` 💫 差一點！再多1個圖片5就能觸發免費轉盤了！`;
         }
         
-        if (starCount >= 3) {
-            message += ` ⭐ 觸發Bonus Game！(${starCount}個星星)`;
+        if (bonusCount >= 3) {
+            message += ` ⭐ 觸發Bonus Game！`;
         }
         
         return message;
@@ -549,15 +646,47 @@ class EventManager {
             });
         }
         
-        // 下注金額
+        // 下注金額選擇器
         if (this.dom.elements.betAmount) {
             this.dom.elements.betAmount.addEventListener('change', (e) => {
                 const newBet = parseInt(e.target.value);
-                if (newBet >= GAME_CONFIG.MIN_BET && newBet <= GAME_CONFIG.MAX_BET) {
-                    gameState.currentBet = newBet;
-                    this.dom.updateDisplay(gameState);
-                    console.log('💰 下注金額更新為:', newBet);
-                }
+                this.updateBet(newBet);
+            });
+        }
+        
+        // 下注增減按鈕
+        const betMinus = document.getElementById('bet-minus');
+        const betPlus = document.getElementById('bet-plus');
+        
+        if (betMinus) {
+            betMinus.addEventListener('click', () => {
+                this.adjustBet(-1);
+            });
+        }
+        
+        if (betPlus) {
+            betPlus.addEventListener('click', () => {
+                this.adjustBet(1);
+            });
+        }
+        
+        // 快速下注按鈕
+        const quickBetButtons = document.querySelectorAll('.quick-bet-btn[data-bet]');
+        quickBetButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const betAmount = parseInt(btn.dataset.bet);
+                this.updateBet(betAmount);
+                this.updateQuickBetButtons(betAmount);
+            });
+        });
+        
+        // MAX下注按鈕
+        const maxBetBtn = document.getElementById('max-bet');
+        if (maxBetBtn) {
+            maxBetBtn.addEventListener('click', () => {
+                const maxBet = Math.min(gameState.balance, GAME_CONFIG.MAX_BET);
+                this.updateBet(maxBet);
+                this.updateQuickBetButtons(maxBet);
             });
         }
         
@@ -570,6 +699,57 @@ class EventManager {
         });
         
         console.log('✅ 事件監聽器初始化完成');
+    }
+    
+    // 更新下注金額
+    updateBet(newBet) {
+        if (newBet >= GAME_CONFIG.MIN_BET && newBet <= GAME_CONFIG.MAX_BET && newBet <= gameState.balance) {
+            gameState.currentBet = newBet;
+            this.dom.updateDisplay(gameState);
+            this.updateBetSelector(newBet);
+            console.log('💰 下注金額更新為:', newBet);
+        } else if (newBet > gameState.balance) {
+            this.dom.showMessage('💰 下注金額不能超過餘額！', 'lose');
+        } else {
+            this.dom.showMessage(`💰 下注金額必須在 ${GAME_CONFIG.MIN_BET} - ${GAME_CONFIG.MAX_BET} 之間！`, 'lose');
+        }
+    }
+    
+    // 調整下注金額（增減）
+    adjustBet(direction) {
+        const betOptions = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500];
+        const currentIndex = betOptions.indexOf(gameState.currentBet);
+        
+        let newIndex;
+        if (direction > 0) {
+            newIndex = Math.min(currentIndex + 1, betOptions.length - 1);
+        } else {
+            newIndex = Math.max(currentIndex - 1, 0);
+        }
+        
+        const newBet = betOptions[newIndex];
+        this.updateBet(newBet);
+        this.updateQuickBetButtons(newBet);
+    }
+    
+    // 更新下注選擇器的值
+    updateBetSelector(bet) {
+        if (this.dom.elements.betAmount) {
+            this.dom.elements.betAmount.value = bet;
+        }
+    }
+    
+    // 更新快速下注按鈕的狀態
+    updateQuickBetButtons(currentBet) {
+        const quickBetButtons = document.querySelectorAll('.quick-bet-btn[data-bet]');
+        quickBetButtons.forEach(btn => {
+            const betAmount = parseInt(btn.dataset.bet);
+            if (betAmount === currentBet) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
     }
 }
 
@@ -590,14 +770,18 @@ function initGame() {
         domManager.renderBoard(gameState.currentBoard);
         domManager.updateDisplay(gameState);
         domManager.updateButtons(gameState);
-        domManager.showMessage('🎰 標準拉霸機準備就緒！從最左側開始連續3個以上相同符號才能中獎！', 'info');
+        domManager.showMessage('🎰 標準拉霸機準備就緒！從最左側開始連續3個以上相同圖片才能中獎！', 'info');
         
         // 全域調試接口
         window.gameDebug = {
             state: () => gameState.getStatus(),
             spin: () => gameLogic.spin(),
             testWin: () => {
-                gameState.currentBoard = ['💎', '💎', '💎', '🍒', '🍋', '💎', '💎', '💎', '🍒', '🍋', '💎', '💎', '💎', '🍒', '🍋'];
+                gameState.currentBoard = [
+                    'IMG_1385.JPG', 'IMG_1385.JPG', 'IMG_1385.JPG', 'IMG_1538.JPG', 'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg',
+                    'IMG_1385.JPG', 'IMG_1385.JPG', 'IMG_1385.JPG', 'IMG_1538.JPG', 'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg',
+                    'IMG_1385.JPG', 'IMG_1385.JPG', 'IMG_1385.JPG', 'IMG_1538.JPG', 'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg'
+                ];
                 domManager.renderBoard(gameState.currentBoard);
                 const result = gameLogic.calculateWin(gameState.currentBoard);
                 console.log('測試中獎結果:', result);
