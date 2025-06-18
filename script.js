@@ -7,7 +7,7 @@ const CONFIG = {
     MAX_BET: 100,
     INITIAL_BALANCE: 1000,
     SPIN_DURATION: 2500,
-    DEBUG_MODE: false,
+    DEBUG_MODE: true,
     PAYLINE_MODE: "leftmost" // "leftmost"=國際主流規則, "any"=任意連續三連都算
 };
 
@@ -358,19 +358,10 @@ class AnimationSystem {
                 
                 // 等待所有動畫完成
                 Promise.all(reelAnimations).then(() => {
-                    // 清除所有動畫狀態
-                    elements.reels.forEach(reel => {
-                        const inner = reel.querySelector('.reel-inner');
-                        inner.style.transition = 'none';
-                        inner.style.transform = 'translateY(0px)';
-                    });
-                    
-                    // 延遲顯示最終結果，確保動畫完全結束
-                    setTimeout(() => {
-                        RenderSystem.renderReels(finalBoard);
-                        GameUtils.debugLog('Animation completed, final board:', finalBoard);
-                        resolve(finalBoard);
-                    }, 300);
+                    // 立即顯示最終結果
+                    RenderSystem.renderReels(finalBoard);
+                    GameUtils.debugLog('Animation completed, final board:', finalBoard);
+                    resolve(finalBoard);
                 });
                 
             } catch (error) {
@@ -667,7 +658,9 @@ class GameSystem {
                 
                 // 自動執行免費轉盤
                 setTimeout(() => {
-                    this.spin();
+                    if (!gameState.isSpinning) {
+                        this.spin();
+                    }
                 }, 500);
                 return; // 免費轉盤會自動執行，不需要重置狀態
             }
@@ -685,7 +678,7 @@ class GameSystem {
     }
     
     static continueAutoMode() {
-        if (gameState.isAutoMode && gameState.balance >= gameState.currentBet) {
+        if (gameState.isAutoMode && !gameState.isSpinning && gameState.balance >= gameState.currentBet) {
             this.spin();
         } else if (gameState.balance < gameState.currentBet) {
             this.stopAutoMode();
@@ -720,13 +713,12 @@ class GameSystem {
     }
     
     static resetGameState() {
-        setTimeout(() => {
-            gameState.isSpinning = false;
-            this.updateButtonStates();
-            
-            // 不要重新渲染盤面，保持動畫結果
-            GameUtils.debugLog('Game state reset, spinning =', gameState.isSpinning);
-        }, 500);
+        // 立即重置狀態，不要延遲
+        gameState.isSpinning = false;
+        this.updateButtonStates();
+        
+        // 不要重新渲染盤面，保持動畫結果
+        GameUtils.debugLog('Game state reset, spinning =', gameState.isSpinning);
     }
 }
 
