@@ -202,17 +202,42 @@ class RenderSystem {
         // 清除所有中獎線
         elements.winLines.forEach(line => line.classList.remove('active'));
         
-        // 顯示中獎線
-        lineIndexes.forEach(index => {
+        // 顯示中獎線，加入閃爍效果
+        lineIndexes.forEach((index, i) => {
             if (elements.winLines[index]) {
-                elements.winLines[index].classList.add('active');
+                setTimeout(() => {
+                    elements.winLines[index].classList.add('active');
+                    
+                    // 高亮對應的符號
+                    this.highlightWinningSymbols(index);
+                }, i * 300); // 錯開顯示時間
             }
         });
         
-        // 2秒後清除
+        // 4秒後清除
         setTimeout(() => {
             elements.winLines.forEach(line => line.classList.remove('active'));
-        }, 2000);
+            this.clearHighlightedSymbols();
+        }, 4000);
+    }
+    
+    static highlightWinningSymbols(lineIndex) {
+        const payline = PAYLINES[lineIndex];
+        payline.forEach(([col, row]) => {
+            const reel = elements.reels[col];
+            const inner = reel.querySelector('.reel-inner');
+            const symbols = inner.querySelectorAll('img');
+            if (symbols[row]) {
+                symbols[row].classList.add('winning-symbol');
+            }
+        });
+    }
+    
+    static clearHighlightedSymbols() {
+        elements.reels.forEach(reel => {
+            const symbols = reel.querySelectorAll('.winning-symbol');
+            symbols.forEach(symbol => symbol.classList.remove('winning-symbol'));
+        });
     }
     
     static createWinEffect(winAmount) {
@@ -241,101 +266,52 @@ class RenderSystem {
 // ===== 動畫系統 =====
 class AnimationSystem {
     static async spinAllReels(duration = CONFIG.SPIN_DURATION) {
-        return new Promise(async (resolve) => {
+        return new Promise((resolve) => {
             try {
                 GameUtils.debugLog('Starting reel animation');
                 
-                // 生成轉輪數據
-                let wheels = [];
+                // 生成最終結果
+                const finalBoard = GameUtils.getRandomBoard();
+                
+                // 為每個轉輪創建動畫
+                const reelAnimations = [];
+                
                 for (let col = 0; col < CONFIG.REEL_COUNT; col++) {
-                    let wheel = [];
-                    for (let i = 0; i < CONFIG.WHEEL_LENGTH; i++) {
-                        wheel.push(Math.floor(Math.random() * SYMBOLS.files.length));
-                    }
-                    wheels.push(wheel);
-                }
-
-                // 初始化轉輪動畫
-                for (let col = 0; col < CONFIG.REEL_COUNT; col++) {
-                    const inner = elements.reels[col].querySelector('.reel-inner');
+                    const reel = elements.reels[col];
+                    const inner = reel.querySelector('.reel-inner');
+                    
+                    // 創建足夠的符號用於動畫
+                    const symbolCount = 20; // 減少符號數量提高性能
                     inner.innerHTML = '';
-                    for (let i = 0; i < CONFIG.WHEEL_LENGTH; i++) {
+                    
+                    for (let i = 0; i < symbolCount; i++) {
                         const img = document.createElement('img');
-                        img.src = SYMBOLS.files[wheels[col][i]];
+                        img.src = SYMBOLS.files[Math.floor(Math.random() * SYMBOLS.files.length)];
                         img.alt = 'symbol';
+                        img.style.cssText = 'width:70px;height:70px;object-fit:cover;border:2px solid #fff;border-radius:5px;margin:2px;background:#f8f9fa;';
                         inner.appendChild(img);
                     }
-                    inner.style.transform = 'translateY(0)';
-                    inner.classList.add('spinning');
-                }
-
-                let currentOffset = 0;
-                let steps = 40;
-                let minInterval = 20;
-                let maxInterval = 180;
-
-                // 生成最終結果
-                let finalBoard = GameUtils.getRandomBoard();
-
-                // 主要動畫循環
-                for (let i = 0; i < steps; i++) {
-                    currentOffset++;
                     
-                    for (let col = 0; col < CONFIG.REEL_COUNT; col++) {
-                        // 延遲停止效果
-                        if (i >= steps - 5 - col) {
-                            const inner = elements.reels[col].querySelector('.reel-inner');
-                            inner.classList.remove('spinning');
-                            inner.classList.add('stopping');
-                            continue;
-                        }
-                        
-                        wheels[col][(currentOffset + CONFIG.WHEEL_LENGTH - 1) % CONFIG.WHEEL_LENGTH] = 
-                            Math.floor(Math.random() * SYMBOLS.files.length);
-                        
-                        const inner = elements.reels[col].querySelector('.reel-inner');
-                        inner.style.transition = `transform ${i < steps - 5 ? 0.06 : 0.1}s cubic-bezier(0.23, 1, 0.32, 1)`;
-                        inner.style.transform = `translateY(-${currentOffset * 70}px)`;
-                    }
-
-                    let t = i / (steps - 1);
-                    let interval = minInterval + (maxInterval - minInterval) * Math.pow(t, 2.5);
-                    await GameUtils.sleep(interval);
-
-                    // 重置轉輪位置
-                    if ((currentOffset + CONFIG.ROW_COUNT) >= CONFIG.WHEEL_LENGTH) {
-                        for (let col = 0; col < CONFIG.REEL_COUNT; col++) {
-                            if (i >= steps - 5 - col) continue;
-                            
-                            const inner = elements.reels[col].querySelector('.reel-inner');
-                            let newImgs = '';
-                            for (let j = 0; j < CONFIG.WHEEL_LENGTH; j++) {
-                                const idx = (currentOffset + j) % CONFIG.WHEEL_LENGTH;
-                                newImgs += `<img src="${SYMBOLS.files[wheels[col][idx]]}" alt="symbol">`;
-                            }
-                            inner.innerHTML = newImgs;
-                            inner.style.transition = 'none';
-                            inner.style.transform = 'translateY(0)';
-                        }
-                        currentOffset = 0;
-                    }
-                }
-
-                // 清除動畫類並確保顯示最終結果
-                elements.reels.forEach(reel => {
-                    const inner = reel.querySelector('.reel-inner');
-                    inner.classList.remove('spinning', 'stopping');
+                    // 設置初始位置
                     inner.style.transition = 'none';
-                    inner.style.transform = 'translateY(0)';
+                    inner.style.transform = 'translateY(0px)';
+                    
+                    // 開始動畫
+                    const animationDuration = duration + (col * 200); // 錯開停止時間
+                    const animation = this.animateReel(inner, animationDuration, finalBoard[col]);
+                    reelAnimations.push(animation);
+                }
+                
+                // 等待所有動畫完成
+                Promise.all(reelAnimations).then(() => {
+                    // 顯示最終結果
+                    RenderSystem.renderReels(finalBoard);
+                    
+                    setTimeout(() => {
+                        GameUtils.debugLog('Animation completed, final board:', finalBoard);
+                        resolve(finalBoard);
+                    }, 200);
                 });
-
-                // 顯示最終結果
-                RenderSystem.renderReels(finalBoard);
-
-                setTimeout(() => {
-                    GameUtils.debugLog('Animation completed, final board:', finalBoard);
-                    resolve(finalBoard);
-                }, 300);
                 
             } catch (error) {
                 GameUtils.debugLog('Animation error:', error);
@@ -343,6 +319,32 @@ class AnimationSystem {
                 RenderSystem.renderReels(errorBoard);
                 resolve(errorBoard);
             }
+        });
+    }
+    
+    static animateReel(inner, duration, finalColumn) {
+        return new Promise((resolve) => {
+            const startTime = performance.now();
+            const totalDistance = 1400; // 總移動距離
+            
+            const animate = (currentTime) => {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // 使用緩動函數
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                const currentDistance = totalDistance * easeOut;
+                
+                inner.style.transform = `translateY(-${currentDistance}px)`;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    resolve();
+                }
+            };
+            
+            requestAnimationFrame(animate);
         });
     }
 }
