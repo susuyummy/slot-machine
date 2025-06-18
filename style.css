@@ -105,16 +105,24 @@ body {
 }
 
 .reel {
-    width: 100px;
+    width: 120px;
     height: 300px;
-    background: linear-gradient(135deg, #2c3e50, #34495e);
+    background: transparent;
     border-radius: 15px;
-    overflow: hidden;
+    overflow: visible;
     position: relative;
-    border: 3px solid #ffd700;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
     transform-style: preserve-3d;
     transition: transform 0.3s ease;
+}
+
+/* 圓柱體符號樣式 */
+.cylinder-symbol {
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+}
+
+.cylinder-symbol:hover {
+    transform: scale(1.05) !important;
 }
 
 .reel-content {
@@ -174,71 +182,22 @@ body {
     }
 }
 
-/* ===== 轉動動畫 ===== */
-.reel.spinning .reel-content {
-    animation: spin-3d 0.1s linear infinite;
+/* ===== 3D圓柱體動畫 ===== */
+.cylinder {
+    transform-origin: center center;
 }
 
-.reel.stopping .reel-content {
-    animation: spin-slow-3d 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
-               spin-stop-3d 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards,
-               rollback-3d 0.3s ease-out 1.3s forwards;
+/* 保持一些基礎動畫用於狀態指示 */
+.reel.spinning {
+    animation: reel-glow 0.5s ease-in-out infinite alternate;
 }
 
-@keyframes spin-3d {
+@keyframes reel-glow {
     0% { 
-        transform: translateY(0) rotateX(0deg); 
-    }
-    25% { 
-        transform: translateY(-25px) rotateX(90deg); 
-    }
-    50% { 
-        transform: translateY(-50px) rotateX(180deg); 
-    }
-    75% { 
-        transform: translateY(-75px) rotateX(270deg); 
+        filter: brightness(1);
     }
     100% { 
-        transform: translateY(-100px) rotateX(360deg); 
-    }
-}
-
-@keyframes spin-slow-3d {
-    0% { 
-        transform: translateY(0) rotateX(0deg); 
-    }
-    100% { 
-        transform: translateY(-20px) rotateX(180deg); 
-    }
-}
-
-@keyframes spin-stop-3d {
-    0% { 
-        transform: translateY(-20px) rotateX(180deg); 
-    }
-    30% { 
-        transform: translateY(-8px) rotateX(90deg); 
-    }
-    60% { 
-        transform: translateY(-3px) rotateX(30deg); 
-    }
-    80% { 
-        transform: translateY(-1px) rotateX(10deg); 
-    }
-    100% { 
-        transform: translateY(0) rotateX(0deg); 
-    }
-}
-
-@keyframes rollback-3d {
-    0% { 
-        transform: translateY(0) rotateX(0deg); 
-    }
-    50% { 
-        transform: translateY(2px) rotateX(-15deg); 
-    }
-    100% { 
-        transform: translateY(0) rotateX(0deg); 
+        filter: brightness(1.2);
     }
 }
 

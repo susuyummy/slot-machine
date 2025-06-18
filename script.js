@@ -8,31 +8,54 @@ const GAME_CONFIG = {
     REELS: 5,
     ROWS: 3,
     SYMBOLS: [
-        'IMG_1538.JPG',                                           // 圖片1
-        'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg',    // 圖片2
-        'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg',    // 圖片3
-        'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg',    // 圖片4
-        '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg',    // 圖片5 - 免費轉盤觸發
-        '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg',    // 圖片6
-        'IMG_1385.JPG'                                           // 圖片7 - 最高價值
+        'IMG_1538.JPG',           // 圖片1
+        'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg', // 圖片2
+        'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg', // 圖片3
+        'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg', // 圖片4
+        '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg', // 圖片5 (免費轉盤)
+        '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg', // 圖片6
+        'IMG_1385.JPG'            // 圖片7
     ],
     SYMBOL_NAMES: ['圖片1', '圖片2', '圖片3', '圖片4', '圖片5', '圖片6', '圖片7'],
-    SYMBOL_EMOJIS: ['🎨', '🖼️', '🌟', '✨', '💫', '🎯', '🐰'], // 備用emoji
+    SYMBOL_EMOJIS: ['🎨', '🖼️', '🌟', '✨', '💫', '🎯', '🐰'],
+    
+    // 3D圓柱體配置
+    CYLINDER_CONFIG: {
+        SYMBOLS_COUNT: 20,        // 每個圓柱體上的符號數量
+        RADIUS: 80,               // 圓柱體半徑
+        SYMBOL_HEIGHT: 100,       // 每個符號的高度
+        PERSPECTIVE: 1000,        // 3D透視距離
+    },
+    
+    // 動畫配置
+    ANIMATION_CONFIG: {
+        SPIN_DURATION: 3000,      // 轉動持續時間(ms)
+        SPIN_ROUNDS: 5,           // 轉動圈數
+        ROLLBACK_ANGLE: 15,       // 回滾角度範圍
+        STOP_DELAY: 200,          // 每個轉輪停止間隔
+    },
+    
+    // 賠付線定義
     PAYLINES: [
-        [0, 1, 2, 3, 4],     // 第一排（上排）
-        [5, 6, 7, 8, 9],     // 第二排（中排）
-        [10, 11, 12, 13, 14], // 第三排（下排）
-        [0, 6, 12, 8, 4],    // 對角線1（上左到下右）
-        [10, 6, 2, 8, 14]    // 對角線2（下左到上右）
+        [0, 3, 6, 9, 12],   // 上排水平線
+        [1, 4, 7, 10, 13],  // 中排水平線  
+        [2, 5, 8, 11, 14],  // 下排水平線
+        [0, 4, 8, 10, 12],  // 對角線1
+        [2, 4, 6, 10, 14]   // 對角線2
     ],
+    
+    // 符號權重 (機率分配)
+    SYMBOL_WEIGHTS: [25, 20, 18, 15, 8, 10, 4], // 對應SYMBOLS陣列的權重
+    
+    // 賠付表
     PAYTABLE: {
-        'IMG_1385.JPG': { 3: 150, 4: 800, 5: 3000 },  // 圖片7 - 超級獎勵
-        '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg': { 3: 100, 4: 500, 5: 2000 }, // 圖片6
-        '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg': { 3: 50, 4: 200, 5: 1000 },  // 圖片5 - 免費轉盤
-        'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg': { 3: 30, 4: 100, 5: 500 },   // 圖片4
-        'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg': { 3: 20, 4: 80, 5: 300 },    // 圖片3
-        'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg': { 3: 15, 4: 60, 5: 200 },    // 圖片2
-        'IMG_1538.JPG': { 3: 10, 4: 40, 5: 100 }  // 圖片1
+        'IMG_1538.JPG': { 3: 100, 4: 300, 5: 1000 },
+        'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg': { 3: 150, 4: 450, 5: 1500 },
+        'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg': { 3: 200, 4: 600, 5: 2000 },
+        'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg': { 3: 250, 4: 750, 5: 2500 },
+        '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg': { 3: 0, 4: 0, 5: 0 }, // 免費轉盤符號
+        '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg': { 3: 400, 4: 1200, 5: 4000 },
+        'IMG_1385.JPG': { 3: 500, 4: 1500, 5: 3000 }
     },
     SPIN_DURATION: 2000,
     MIN_BET: 1,
@@ -60,33 +83,20 @@ class GameState {
     
     generateRandomBoard() {
         const board = [];
-        
-        // 定義符號權重（數字越大出現機率越高）
-        const symbolWeights = {
-            'IMG_1538.JPG': 25,                                           // 圖片1 - 最常見
-            'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg': 20,    // 圖片2 - 常見
-            'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg': 18,    // 圖片3 - 常見
-            'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg': 15,    // 圖片4 - 中等
-            '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg': 8,     // 圖片5 - 免費轉盤（稀有）
-            '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg': 10,    // 圖片6 - 少見
-            'IMG_1385.JPG': 4                                            // 圖片7 - 最稀有
-        };
-        
-        // 建立加權符號池
-        const weightedSymbols = [];
-        for (const [symbol, weight] of Object.entries(symbolWeights)) {
-            for (let i = 0; i < weight; i++) {
-                weightedSymbols.push(symbol);
+        for (let reel = 0; reel < GAME_CONFIG.REELS; reel++) {
+            for (let row = 0; row < GAME_CONFIG.ROWS; row++) {
+                const totalWeight = GAME_CONFIG.SYMBOL_WEIGHTS.reduce((sum, weight) => sum + weight, 0);
+                let random = Math.random() * totalWeight;
+                
+                for (let i = 0; i < GAME_CONFIG.SYMBOLS.length; i++) {
+                    random -= GAME_CONFIG.SYMBOL_WEIGHTS[i];
+                    if (random <= 0) {
+                        board.push(GAME_CONFIG.SYMBOLS[i]);
+                        break;
+                    }
+                }
             }
         }
-        
-        // 生成隨機盤面
-        for (let i = 0; i < GAME_CONFIG.REELS * GAME_CONFIG.ROWS; i++) {
-            const randomIndex = Math.floor(Math.random() * weightedSymbols.length);
-            const randomSymbol = weightedSymbols[randomIndex];
-            board.push(randomSymbol);
-        }
-        
         return board;
     }
     
@@ -138,7 +148,9 @@ class GameState {
 class DOMManager {
     constructor() {
         this.elements = this.initElements();
+        this.cylinderReels = [];
         this.validateElements();
+        this.initCylinderReels();
     }
     
     initElements() {
@@ -174,6 +186,26 @@ class DOMManager {
         } else {
             console.log('✅ DOM元素驗證通過');
         }
+    }
+    
+    initCylinderReels() {
+        // 清空並重新創建圓柱體轉輪
+        this.cylinderReels = [];
+        
+        this.elements.reels.forEach((reelElement, index) => {
+            if (!reelElement) return;
+            
+            // 設置轉輪容器樣式
+            reelElement.style.perspective = `${GAME_CONFIG.CYLINDER_CONFIG.PERSPECTIVE}px`;
+            reelElement.style.perspectiveOrigin = 'center center';
+            reelElement.style.overflow = 'visible';
+            
+            // 創建圓柱體轉輪實例
+            const cylinderReel = new CylinderReel(reelElement, GAME_CONFIG);
+            this.cylinderReels.push(cylinderReel);
+        });
+        
+        console.log('✅ 3D圓柱體轉輪初始化完成');
     }
     
     updateDisplay(gameState) {
@@ -306,6 +338,14 @@ class DOMManager {
     }
     
     showSpinAnimation() {
+        // 啟動所有圓柱體轉輪的旋轉
+        this.cylinderReels.forEach(cylinderReel => {
+            if (cylinderReel) {
+                cylinderReel.spin();
+            }
+        });
+        
+        // 保持原有的CSS類別以便其他邏輯使用
         this.elements.reels.forEach(reel => {
             if (reel) {
                 reel.classList.add('spinning');
@@ -314,28 +354,38 @@ class DOMManager {
         });
     }
     
-    hideSpinAnimation() {
+    hideSpinAnimation(finalBoard) {
+        // 將最終盤面轉換為每個轉輪的符號陣列
+        const reelSymbols = [];
+        for (let reel = 0; reel < GAME_CONFIG.REELS; reel++) {
+            const symbols = [];
+            for (let row = 0; row < GAME_CONFIG.ROWS; row++) {
+                const index = reel * GAME_CONFIG.ROWS + row;
+                symbols.push(finalBoard[index]);
+            }
+            reelSymbols.push(symbols);
+        }
+        
+        // 停止每個圓柱體轉輪
+        this.cylinderReels.forEach((cylinderReel, index) => {
+            if (cylinderReel) {
+                setTimeout(() => {
+                    cylinderReel.stop(reelSymbols[index]);
+                }, index * GAME_CONFIG.ANIMATION_CONFIG.STOP_DELAY);
+            }
+        });
+        
+        // 保持原有的CSS類別管理
         this.elements.reels.forEach((reel, index) => {
             if (reel) {
                 setTimeout(() => {
                     reel.classList.remove('spinning');
                     reel.classList.add('stopping');
                     
-                    // 添加隨機回滾效果
-                    const content = reel.querySelector('.reel-content');
-                    if (content) {
-                        const rollbackAngle = Math.random() * 30 - 15; // -15度到15度的隨機回滾
-                        content.style.setProperty('--rollback-angle', `${rollbackAngle}deg`);
-                    }
-                    
                     setTimeout(() => {
                         reel.classList.remove('stopping');
-                        // 清除回滾效果
-                        if (content) {
-                            content.style.removeProperty('--rollback-angle');
-                        }
-                    }, 1600); // 增加時間以配合新的動畫時長
-                }, index * 200);
+                    }, GAME_CONFIG.ANIMATION_CONFIG.SPIN_DURATION);
+                }, index * GAME_CONFIG.ANIMATION_CONFIG.STOP_DELAY);
             }
         });
     }
@@ -591,7 +641,7 @@ class GameLogic {
             this.gameState.currentBoard = newBoard;
             
             // 停止動畫
-            this.dom.hideSpinAnimation();
+            this.dom.hideSpinAnimation(newBoard);
             
             // 等待停止動畫完成
             await this.sleep(1200);
@@ -870,4 +920,4 @@ if (document.readyState === 'loading') {
     initGame();
 }
 
-console.log('�� 標準拉霸機遊戲腳本載入完成'); 
+console.log('✅ 標準拉霸機遊戲腳本載入完成'); 
