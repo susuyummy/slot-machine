@@ -12,12 +12,11 @@ const GAME_CONFIG = {
         'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg', // 圖片2
         'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg', // 圖片3
         'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg', // 圖片4
-        '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg', // 圖片5 (免費轉盤)
-        '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg', // 圖片6
-        'IMG_1385.JPG'            // 圖片7
+        '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg', // 圖片5
+        'IMG_1385.JPG'            // 圖片6
     ],
-    SYMBOL_NAMES: ['圖片1', '圖片2', '圖片3', '圖片4', '圖片5', '圖片6', '圖片7'],
-    SYMBOL_EMOJIS: ['🎨', '🖼️', '🌟', '✨', '💫', '🎯', '🐰'],
+    SYMBOL_NAMES: ['圖片1', '圖片2', '圖片3', '圖片4', '圖片5', '圖片6'],
+    SYMBOL_EMOJIS: ['🎨', '🖼️', '🌟', '✨', '🎯', '🐰'],
     
     // 3D圓柱體配置
     CYLINDER_CONFIG: {
@@ -45,7 +44,7 @@ const GAME_CONFIG = {
     ],
     
     // 符號權重 (機率分配)
-    SYMBOL_WEIGHTS: [25, 20, 18, 15, 8, 10, 4], // 對應SYMBOLS陣列的權重
+    SYMBOL_WEIGHTS: [25, 20, 18, 15, 10, 12], // 對應SYMBOLS陣列的權重
     
     // 賠付表
     PAYTABLE: {
@@ -53,7 +52,6 @@ const GAME_CONFIG = {
         'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg': { 3: 150, 4: 450, 5: 1500 },
         'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg': { 3: 200, 4: 600, 5: 2000 },
         'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg': { 3: 250, 4: 750, 5: 2500 },
-        '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg': { 3: 0, 4: 0, 5: 0 }, // 免費轉盤符號
         '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg': { 3: 400, 4: 1200, 5: 4000 },
         'IMG_1385.JPG': { 3: 500, 4: 1500, 5: 3000 }
     },
@@ -268,8 +266,6 @@ class GameState {
         this.currentBet = 10;
         this.isSpinning = false;
         this.isAutoMode = false;
-        this.freeSpins = 0;
-        this.bonusGame = false;
         this.currentBoard = this.generateRandomBoard();
         this.lastWin = 0;
         this.totalWins = 0;
@@ -303,8 +299,6 @@ class GameState {
             balance: this.balance,
             currentBet: this.currentBet,
             isSpinning: this.isSpinning,
-            freeSpins: this.freeSpins,
-            bonusGame: this.bonusGame,
             lastWin: this.lastWin,
             totalWins: this.totalWins,
             spinCount: this.spinCount
@@ -338,7 +332,7 @@ class GameState {
     }
     
     canAffordBet() {
-        return this.balance >= this.currentBet || this.freeSpins > 0;
+        return this.balance >= this.currentBet;
     }
 }
 
@@ -423,12 +417,10 @@ class DOMManager {
         if (this.elements.winDisplay) {
             this.elements.winDisplay.textContent = gameState.lastWin;
         }
-        if (this.elements.freeSpinsDisplay) {
-            this.elements.freeSpinsDisplay.textContent = gameState.freeSpins;
-            const container = document.getElementById('free-spins-container');
-            if (container) {
-                container.style.display = gameState.freeSpins > 0 ? 'block' : 'none';
-            }
+        // 隱藏免費轉盤容器
+        const container = document.getElementById('free-spins-container');
+        if (container) {
+            container.style.display = 'none';
         }
     }
     
@@ -439,8 +431,7 @@ class DOMManager {
         if (this.elements.spinBtn) {
             this.elements.spinBtn.disabled = !canSpin;
             this.elements.spinBtn.innerHTML = spinning ? 
-                '<div class="loading"></div> 轉動中...' : 
-                (gameState.freeSpins > 0 ? '🎁 免費轉動' : '🎰 轉動');
+                '<div class="loading"></div> 轉動中...' : '🎰 轉動';
         }
         
         if (this.elements.autoBtn) {
@@ -452,7 +443,7 @@ class DOMManager {
         }
         
         if (this.elements.betAmount) {
-            this.elements.betAmount.disabled = spinning || gameState.freeSpins > 0;
+            this.elements.betAmount.disabled = spinning;
         }
     }
     
@@ -837,8 +828,6 @@ class GameLogic {
         let totalPayout = 0;
         let winningLines = [];
         let winningPositions = new Set();
-        let freeSpinCount = 0;
-        let bonusCount = 0;
         
         // 檢查每條賠付線
         GAME_CONFIG.PAYLINES.forEach((line, lineIndex) => {
@@ -858,58 +847,25 @@ class GameLogic {
             }
         });
         
-        // 計算特殊符號（不限連線）- 免費轉盤觸發
-        board.forEach(symbol => {
-            if (symbol === '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg') {
-                freeSpinCount++;
-            }
-            // 可以在這裡添加其他特殊符號的邏輯
-        });
-        
         const finalWin = totalPayout * this.gameState.currentBet;
         
         console.log(`總賠付: ${totalPayout} × ${this.gameState.currentBet} = ${finalWin}`);
-        console.log(`免費轉盤符號數量: ${freeSpinCount}`);
-        
-        // 調整免費轉盤觸發條件：需要4個以上才觸發，給予8次免費轉動
-        let freeSpinsAwarded = 0;
-        if (freeSpinCount >= 5) {
-            freeSpinsAwarded = 15; // 5個符號 = 15次免費轉動
-        } else if (freeSpinCount >= 4) {
-            freeSpinsAwarded = 8;  // 4個符號 = 8次免費轉動
-        }
         
         return {
             totalWin: finalWin,
             winningLines,
             winningPositions: Array.from(winningPositions),
-            freeSpins: freeSpinsAwarded,
-            bonusGame: bonusCount >= 3,
-            message: this.generateWinMessage(finalWin, winningLines.length, freeSpinCount, bonusCount, freeSpinsAwarded)
+            message: this.generateWinMessage(finalWin, winningLines.length)
         };
     }
     
-    generateWinMessage(winAmount, lineCount, freeSpinCount, bonusCount, freeSpinsAwarded) {
+    generateWinMessage(winAmount, lineCount) {
         let message = '';
         
         if (winAmount > 0) {
             message += `🎊 中獎！贏得 ${winAmount} 點！(${lineCount}條賠付線中獎)`;
         } else {
             message += '再試一次！記住：只有從最左側開始的連續3個以上相同圖片才能中獎';
-        }
-        
-        if (freeSpinsAwarded > 0) {
-            if (freeSpinCount >= 5) {
-                message += ` 🎉 超級免費轉盤！${freeSpinCount}個圖片5觸發${freeSpinsAwarded}次免費轉動！`;
-            } else {
-                message += ` 🎁 觸發免費轉盤！${freeSpinCount}個圖片5獲得${freeSpinsAwarded}次免費轉動！`;
-            }
-        } else if (freeSpinCount === 3) {
-            message += ` 💫 差一點！再多1個圖片5就能觸發免費轉盤了！`;
-        }
-        
-        if (bonusCount >= 3) {
-            message += ` ⭐ 觸發Bonus Game！`;
         }
         
         return message;
@@ -925,7 +881,7 @@ class GameLogic {
         console.log('轉動前狀態:', this.gameState.getStatus());
         
         // 檢查是否能下注
-        if (this.gameState.freeSpins === 0 && !this.gameState.canAffordBet()) {
+        if (!this.gameState.canAffordBet()) {
             this.dom.showMessage('💰 餘額不足！', 'lose');
             console.log('❌ 餘額不足');
             return false;
@@ -935,14 +891,9 @@ class GameLogic {
         this.gameState.isSpinning = true;
         this.gameState.spinCount++;
         
-        // 先扣除下注或免費次數
-        if (this.gameState.freeSpins > 0) {
-            this.gameState.freeSpins--;
-            console.log('🎁 使用免費轉動，剩餘:', this.gameState.freeSpins);
-        } else {
-            this.gameState.updateBalance(-this.gameState.currentBet);
-            console.log('💰 扣除下注金額:', this.gameState.currentBet);
-        }
+        // 扣除下注金額
+        this.gameState.updateBalance(-this.gameState.currentBet);
+        console.log('💰 扣除下注金額:', this.gameState.currentBet);
         
         // 更新UI
         this.dom.updateDisplay(this.gameState);
@@ -979,16 +930,7 @@ class GameLogic {
                 this.dom.showMessage(winResult.message, 'lose');
             }
             
-            // 處理特殊功能
-            if (winResult.freeSpins > 0) {
-                this.gameState.freeSpins += winResult.freeSpins;
-                console.log('🎁 獲得免費轉動:', winResult.freeSpins);
-            }
-            
-            if (winResult.bonusGame) {
-                this.gameState.bonusGame = true;
-                console.log('⭐ 觸發Bonus Game');
-            }
+            // 移除免費轉盤和bonus功能
             
             // 更新顯示
             this.dom.updateDisplay(this.gameState);
@@ -1006,11 +948,6 @@ class GameLogic {
             // 確保狀態重置
             this.gameState.isSpinning = false;
             this.dom.updateButtons(this.gameState);
-            
-            // 自動繼續免費轉盤
-            if (this.gameState.freeSpins > 0 && this.gameState.isAutoMode) {
-                setTimeout(() => this.spin(), 1500);
-            }
         }
     }
     
@@ -1212,6 +1149,19 @@ function initGame() {
         domManager.updateButtons(gameState);
         domManager.showMessage('🎰 標準拉霸機準備就緒！從最左側開始連續3個以上相同圖片才能中獎！', 'info');
         console.log('✅ 顯示初始化完成');
+        
+        // 測試動畫
+        console.log('🧪 測試動畫功能...');
+        setTimeout(() => {
+            console.log('開始測試動畫...');
+            domManager.showSpinAnimation();
+            
+            setTimeout(() => {
+                console.log('停止測試動畫...');
+                const testBoard = gameState.generateRandomBoard();
+                domManager.hideSpinAnimation(testBoard);
+            }, 2000);
+        }, 1000);
         
         // 全域調試接口
         window.gameDebug = {
