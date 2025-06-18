@@ -245,8 +245,14 @@ class DOMManager {
                     img.alt = this.getSymbolName(symbolFile);
                     img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 5px;';
                     
+                    // 載入成功時的處理
+                    img.onload = () => {
+                        console.log('✅ 圖片載入成功:', symbolFile);
+                    };
+                    
                     // 圖片載入失敗時顯示emoji符號
                     img.onerror = () => {
+                        console.warn('❌ 圖片載入失敗:', symbolFile);
                         const symbolEmoji = this.getSymbolEmoji(symbolFile);
                         symbolElement.innerHTML = '';
                         symbolElement.textContent = symbolEmoji;
@@ -258,8 +264,16 @@ class DOMManager {
                         symbolElement.style.justifyContent = 'center';
                         symbolElement.style.background = 'linear-gradient(45deg, #666, #999)';
                         symbolElement.style.borderRadius = '5px';
-                        console.log('🖼️ 圖片載入失敗，使用備用符號:', symbolFile, '->', symbolEmoji);
+                        console.log('🔄 使用備用符號:', symbolFile, '->', symbolEmoji);
                     };
+                    
+                    // 設置載入超時（3秒後如果還沒載入就使用備用符號）
+                    setTimeout(() => {
+                        if (!img.complete) {
+                            console.warn('⏰ 圖片載入超時:', symbolFile);
+                            img.onerror();
+                        }
+                    }, 3000);
                     
                     symbolElement.appendChild(img);
                 } else {
@@ -274,6 +288,7 @@ class DOMManager {
                     symbolElement.style.justifyContent = 'center';
                     symbolElement.style.background = 'linear-gradient(45deg, #666, #999)';
                     symbolElement.style.borderRadius = '5px';
+                    console.log('📝 使用emoji符號:', symbolFile, '->', symbolEmoji);
                 }
                 
                 content.appendChild(symbolElement);
