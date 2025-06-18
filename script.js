@@ -86,6 +86,7 @@ function saveBalance() {
 let bonusSpinsLeft = 0;
 let bonusTotalWin = 0;
 let isBonusGame = false;
+let isAutoSpinning = false;  // 新增：追蹤是否正在自動轉動
 
 // BONUS GAME 元素
 const bonusModal = document.getElementById('bonus-modal');
@@ -112,6 +113,8 @@ function startBonusGame() {
     bonusTotalWin = 0;
     bonusModal.style.display = 'block';
     updateBonusDisplay();
+    // 自動開始 BONUS GAME
+    autoBonusSpin();
 }
 
 // 更新 BONUS 顯示
@@ -119,6 +122,28 @@ function updateBonusDisplay() {
     bonusSpinsDisplay.textContent = bonusSpinsLeft;
     bonusWinDisplay.textContent = '0';
     bonusTotalDisplay.textContent = bonusTotalWin;
+}
+
+// 自動執行 BONUS GAME
+async function autoBonusSpin() {
+    if (isAutoSpinning) return;
+    isAutoSpinning = true;
+    
+    try {
+        while (bonusSpinsLeft > 0) {
+            await bonusSpin();
+            if (bonusSpinsLeft > 0) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+    } catch (error) {
+        console.error('Auto bonus spin error:', error);
+    } finally {
+        isAutoSpinning = false;
+        if (bonusSpinsLeft <= 0) {
+            setTimeout(endBonusGame, 2000);
+        }
+    }
 }
 
 // BONUS SPIN
@@ -142,17 +167,12 @@ async function bonusSpin() {
         bonusTotalDisplay.textContent = bonusTotalWin;
         updateBalance(result.winAmount);
     }
-
-    if (bonusSpinsLeft > 0) {
-        bonusSpinButton.disabled = false;
-    } else {
-        setTimeout(endBonusGame, 2000);
-    }
 }
 
 // 結束 BONUS GAME
 function endBonusGame() {
     isBonusGame = false;
+    isAutoSpinning = false;
     bonusModal.style.display = 'none';
     showMessage(`BONUS GAME 結束！總共贏得 ${bonusTotalWin} 點！`, '#388e3c');
 }
