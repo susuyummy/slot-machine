@@ -1150,19 +1150,6 @@ function initGame() {
         domManager.showMessage('🎰 標準拉霸機準備就緒！從最左側開始連續3個以上相同圖片才能中獎！', 'info');
         console.log('✅ 顯示初始化完成');
         
-        // 測試動畫
-        console.log('🧪 測試動畫功能...');
-        setTimeout(() => {
-            console.log('開始測試動畫...');
-            domManager.showSpinAnimation();
-            
-            setTimeout(() => {
-                console.log('停止測試動畫...');
-                const testBoard = gameState.generateRandomBoard();
-                domManager.hideSpinAnimation(testBoard);
-            }, 2000);
-        }, 1000);
-        
         // 全域調試接口
         window.gameDebug = {
             state: () => gameState.getStatus(),
