@@ -100,6 +100,8 @@ body {
     border-radius: 20px;
     backdrop-filter: blur(10px);
     border: 2px solid rgba(255,255,255,0.1);
+    perspective: 1200px; /* 3D透視效果 */
+    perspective-origin: center center;
 }
 
 .reel {
@@ -111,6 +113,8 @@ body {
     position: relative;
     border: 3px solid #ffd700;
     box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    transform-style: preserve-3d;
+    transition: transform 0.3s ease;
 }
 
 .reel-content {
@@ -118,6 +122,9 @@ body {
     flex-direction: column;
     height: 100%;
     transition: transform 0.3s ease;
+    transform-style: preserve-3d;
+    --rotation-angle: 0deg;
+    --rollback-angle: 0deg;
 }
 
 .symbol {
@@ -140,43 +147,99 @@ body {
 .symbol.winning {
     background: linear-gradient(135deg, #ffd700, #ffed4a) !important;
     color: #000;
-    animation: winning-glow 1s infinite alternate;
+    animation: winning-glow 1s infinite alternate, winning-pulse 0.8s ease-in-out infinite;
     box-shadow: 0 0 20px #ffd700;
     z-index: 10;
+    transform: scale(1.1);
+    border: 2px solid #fff;
 }
 
 @keyframes winning-glow {
-    0% { box-shadow: 0 0 20px #ffd700; }
-    100% { box-shadow: 0 0 30px #ffd700, 0 0 40px #ffd700; }
+    0% { 
+        box-shadow: 0 0 20px #ffd700; 
+        filter: brightness(1);
+    }
+    100% { 
+        box-shadow: 0 0 30px #ffd700, 0 0 40px #ffd700, 0 0 60px #ffd700; 
+        filter: brightness(1.2);
+    }
+}
+
+@keyframes winning-pulse {
+    0%, 100% { 
+        transform: scale(1.1) rotateY(0deg); 
+    }
+    50% { 
+        transform: scale(1.15) rotateY(5deg); 
+    }
 }
 
 /* ===== 轉動動畫 ===== */
 .reel.spinning .reel-content {
-    animation: spin 0.15s linear infinite;
+    animation: spin-3d 0.1s linear infinite;
 }
 
 .reel.stopping .reel-content {
-    animation: spin-slow 0.3s ease-out, spin-stop 0.4s ease-out 0.3s forwards;
+    animation: spin-slow-3d 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+               spin-stop-3d 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards,
+               rollback-3d 0.3s ease-out 1.3s forwards;
 }
 
-@keyframes spin {
-    0% { transform: translateY(0); }
-    25% { transform: translateY(-25px); }
-    50% { transform: translateY(-50px); }
-    75% { transform: translateY(-75px); }
-    100% { transform: translateY(-100px); }
+@keyframes spin-3d {
+    0% { 
+        transform: translateY(0) rotateX(0deg); 
+    }
+    25% { 
+        transform: translateY(-25px) rotateX(90deg); 
+    }
+    50% { 
+        transform: translateY(-50px) rotateX(180deg); 
+    }
+    75% { 
+        transform: translateY(-75px) rotateX(270deg); 
+    }
+    100% { 
+        transform: translateY(-100px) rotateX(360deg); 
+    }
 }
 
-@keyframes spin-slow {
-    0% { transform: translateY(0); }
-    100% { transform: translateY(-20px); }
+@keyframes spin-slow-3d {
+    0% { 
+        transform: translateY(0) rotateX(0deg); 
+    }
+    100% { 
+        transform: translateY(-20px) rotateX(180deg); 
+    }
 }
 
-@keyframes spin-stop {
-    0% { transform: translateY(-20px); }
-    30% { transform: translateY(-5px); }
-    60% { transform: translateY(-1px); }
-    100% { transform: translateY(0); }
+@keyframes spin-stop-3d {
+    0% { 
+        transform: translateY(-20px) rotateX(180deg); 
+    }
+    30% { 
+        transform: translateY(-8px) rotateX(90deg); 
+    }
+    60% { 
+        transform: translateY(-3px) rotateX(30deg); 
+    }
+    80% { 
+        transform: translateY(-1px) rotateX(10deg); 
+    }
+    100% { 
+        transform: translateY(0) rotateX(0deg); 
+    }
+}
+
+@keyframes rollback-3d {
+    0% { 
+        transform: translateY(0) rotateX(0deg); 
+    }
+    50% { 
+        transform: translateY(2px) rotateX(-15deg); 
+    }
+    100% { 
+        transform: translateY(0) rotateX(0deg); 
+    }
 }
 
 /* ===== 控制面板 ===== */
@@ -571,15 +634,62 @@ body {
 @keyframes win-effect {
     0% {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.5);
+        transform: translate(-50%, -50%) scale(0.5) rotateY(0deg);
     }
-    50% {
+    20% {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1.2);
+        transform: translate(-50%, -50%) scale(1.2) rotateY(180deg);
     }
     100% {
         opacity: 0;
-        transform: translate(-50%, -100px) scale(1);
+        transform: translate(-50%, -100px) scale(1) rotateY(360deg);
+    }
+}
+
+/* 金幣飄散效果 */
+.coin-effect {
+    position: fixed;
+    top: 60%;
+    font-size: 2rem;
+    animation: coin-float 2s ease-out forwards;
+    z-index: 999;
+    pointer-events: none;
+}
+
+@keyframes coin-float {
+    0% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg) scale(1);
+    }
+    50% {
+        transform: translateY(-50px) rotate(180deg) scale(1.2);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-120px) rotate(360deg) scale(0.8);
+    }
+}
+
+/* 彩帶效果 */
+.confetti-effect {
+    position: fixed;
+    top: 20%;
+    width: 10px;
+    height: 10px;
+    animation: confetti-fall 3s ease-out forwards;
+    z-index: 998;
+    pointer-events: none;
+    border-radius: 2px;
+}
+
+@keyframes confetti-fall {
+    0% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(400px) rotate(720deg);
     }
 }
 

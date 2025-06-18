@@ -321,9 +321,20 @@ class DOMManager {
                     reel.classList.remove('spinning');
                     reel.classList.add('stopping');
                     
+                    // 添加隨機回滾效果
+                    const content = reel.querySelector('.reel-content');
+                    if (content) {
+                        const rollbackAngle = Math.random() * 30 - 15; // -15度到15度的隨機回滾
+                        content.style.setProperty('--rollback-angle', `${rollbackAngle}deg`);
+                    }
+                    
                     setTimeout(() => {
                         reel.classList.remove('stopping');
-                    }, 500);
+                        // 清除回滾效果
+                        if (content) {
+                            content.style.removeProperty('--rollback-angle');
+                        }
+                    }, 1600); // 增加時間以配合新的動畫時長
                 }, index * 200);
             }
         });
@@ -351,10 +362,47 @@ class DOMManager {
     }
     
     showWinEffect(amount) {
+        // 創建主要勝利效果
         const effect = document.createElement('div');
         effect.className = 'win-effect';
         effect.textContent = `+${amount}`;
         document.body.appendChild(effect);
+        
+        // 創建多個飄散的金幣效果
+        for (let i = 0; i < 8; i++) {
+            setTimeout(() => {
+                const coin = document.createElement('div');
+                coin.className = 'coin-effect';
+                coin.textContent = '💰';
+                coin.style.left = `${50 + (Math.random() - 0.5) * 60}%`;
+                coin.style.animationDelay = `${Math.random() * 0.5}s`;
+                document.body.appendChild(coin);
+                
+                setTimeout(() => {
+                    if (coin.parentNode) {
+                        coin.parentNode.removeChild(coin);
+                    }
+                }, 2000);
+            }, i * 100);
+        }
+        
+        // 創建彩帶效果
+        for (let i = 0; i < 12; i++) {
+            setTimeout(() => {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti-effect';
+                confetti.style.left = `${Math.random() * 100}%`;
+                confetti.style.backgroundColor = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b'][Math.floor(Math.random() * 6)];
+                confetti.style.animationDelay = `${Math.random() * 0.3}s`;
+                document.body.appendChild(confetti);
+                
+                setTimeout(() => {
+                    if (confetti.parentNode) {
+                        confetti.parentNode.removeChild(confetti);
+                    }
+                }, 3000);
+            }, i * 50);
+        }
         
         setTimeout(() => {
             if (effect.parentNode) {
