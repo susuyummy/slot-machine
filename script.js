@@ -387,20 +387,27 @@ class DOMManager {
     }
     
     initCylinderReels() {
-        // 清空並重新創建圓柱體轉輪
+        // 暫時禁用圓柱體，先讓基本遊戲運作
         this.cylinderReels = [];
+        console.log('⚠️ 圓柱體轉輪暫時禁用，使用傳統轉輪');
+        return;
         
+        // 清空並重新創建圓柱體轉輪
         this.elements.reels.forEach((reelElement, index) => {
             if (!reelElement) return;
             
-            // 設置轉輪容器樣式
-            reelElement.style.perspective = `${GAME_CONFIG.CYLINDER_CONFIG.PERSPECTIVE}px`;
-            reelElement.style.perspectiveOrigin = 'center center';
-            reelElement.style.overflow = 'visible';
-            
-            // 創建圓柱體轉輪實例
-            const cylinderReel = new CylinderReel(reelElement, GAME_CONFIG);
-            this.cylinderReels.push(cylinderReel);
+            try {
+                // 設置轉輪容器樣式
+                reelElement.style.perspective = `${GAME_CONFIG.CYLINDER_CONFIG.PERSPECTIVE}px`;
+                reelElement.style.perspectiveOrigin = 'center center';
+                reelElement.style.overflow = 'visible';
+                
+                // 創建圓柱體轉輪實例
+                const cylinderReel = new CylinderReel(reelElement, GAME_CONFIG);
+                this.cylinderReels.push(cylinderReel);
+            } catch (e) {
+                console.error(`❌ 圓柱體轉輪 ${index} 初始化失敗:`, e);
+            }
         });
         
         console.log('✅ 3D圓柱體轉輪初始化完成');
@@ -536,12 +543,14 @@ class DOMManager {
     }
     
     showSpinAnimation() {
-        // 啟動所有圓柱體轉輪的旋轉
-        this.cylinderReels.forEach(cylinderReel => {
-            if (cylinderReel) {
-                cylinderReel.spin();
-            }
-        });
+        // 如果有圓柱體轉輪，啟動旋轉
+        if (this.cylinderReels && this.cylinderReels.length > 0) {
+            this.cylinderReels.forEach(cylinderReel => {
+                if (cylinderReel) {
+                    cylinderReel.spin();
+                }
+            });
+        }
         
         // 保持原有的CSS類別以便其他邏輯使用
         this.elements.reels.forEach(reel => {
@@ -553,25 +562,28 @@ class DOMManager {
     }
     
     hideSpinAnimation(finalBoard) {
-        // 將最終盤面轉換為每個轉輪的符號陣列
-        const reelSymbols = [];
-        for (let reel = 0; reel < GAME_CONFIG.REELS; reel++) {
-            const symbols = [];
-            for (let row = 0; row < GAME_CONFIG.ROWS; row++) {
-                const index = reel * GAME_CONFIG.ROWS + row;
-                symbols.push(finalBoard[index]);
+        // 如果有圓柱體轉輪，停止它們
+        if (this.cylinderReels && this.cylinderReels.length > 0) {
+            // 將最終盤面轉換為每個轉輪的符號陣列
+            const reelSymbols = [];
+            for (let reel = 0; reel < GAME_CONFIG.REELS; reel++) {
+                const symbols = [];
+                for (let row = 0; row < GAME_CONFIG.ROWS; row++) {
+                    const index = reel * GAME_CONFIG.ROWS + row;
+                    symbols.push(finalBoard[index]);
+                }
+                reelSymbols.push(symbols);
             }
-            reelSymbols.push(symbols);
+            
+            // 停止每個圓柱體轉輪
+            this.cylinderReels.forEach((cylinderReel, index) => {
+                if (cylinderReel) {
+                    setTimeout(() => {
+                        cylinderReel.stop(reelSymbols[index]);
+                    }, index * GAME_CONFIG.ANIMATION_CONFIG.STOP_DELAY);
+                }
+            });
         }
-        
-        // 停止每個圓柱體轉輪
-        this.cylinderReels.forEach((cylinderReel, index) => {
-            if (cylinderReel) {
-                setTimeout(() => {
-                    cylinderReel.stop(reelSymbols[index]);
-                }, index * GAME_CONFIG.ANIMATION_CONFIG.STOP_DELAY);
-            }
-        });
         
         // 保持原有的CSS類別管理
         this.elements.reels.forEach((reel, index) => {
@@ -582,8 +594,8 @@ class DOMManager {
                     
                     setTimeout(() => {
                         reel.classList.remove('stopping');
-                    }, GAME_CONFIG.ANIMATION_CONFIG.SPIN_DURATION);
-                }, index * GAME_CONFIG.ANIMATION_CONFIG.STOP_DELAY);
+                    }, 1000); // 使用固定時間而不是配置
+                }, index * 200); // 使用固定延遲
             }
         });
     }
@@ -1073,16 +1085,28 @@ function initGame() {
     console.log('🚀 初始化標準拉霸機遊戲...');
     
     try {
+        console.log('步驟1: 創建遊戲狀態...');
         gameState = new GameState();
-        domManager = new DOMManager();
-        gameLogic = new GameLogic(gameState, domManager);
-        eventManager = new EventManager(gameLogic, domManager);
+        console.log('✅ 遊戲狀態創建完成');
         
-        // 初始化顯示
-        domManager.renderBoard(gameState.currentBoard);
+        console.log('步驟2: 創建DOM管理器...');
+        domManager = new DOMManager();
+        console.log('✅ DOM管理器創建完成');
+        
+        console.log('步驟3: 創建遊戲邏輯...');
+        gameLogic = new GameLogic(gameState, domManager);
+        console.log('✅ 遊戲邏輯創建完成');
+        
+        console.log('步驟4: 創建事件管理器...');
+        eventManager = new EventManager(gameLogic, domManager);
+        console.log('✅ 事件管理器創建完成');
+        
+        console.log('步驟5: 初始化顯示...');
+        // 先不渲染圓柱體，使用傳統方式
         domManager.updateDisplay(gameState);
         domManager.updateButtons(gameState);
         domManager.showMessage('🎰 標準拉霸機準備就緒！從最左側開始連續3個以上相同圖片才能中獎！', 'info');
+        console.log('✅ 顯示初始化完成');
         
         // 全域調試接口
         window.gameDebug = {
@@ -1094,7 +1118,6 @@ function initGame() {
                     'IMG_1385.JPG', 'IMG_1385.JPG', 'IMG_1385.JPG', 'IMG_1538.JPG', 'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg',
                     'IMG_1385.JPG', 'IMG_1385.JPG', 'IMG_1385.JPG', 'IMG_1538.JPG', 'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg'
                 ];
-                domManager.renderBoard(gameState.currentBoard);
                 const result = gameLogic.calculateWin(gameState.currentBoard);
                 console.log('測試中獎結果:', result);
             },
@@ -1108,7 +1131,17 @@ function initGame() {
         
     } catch (e) {
         console.error('❌ 遊戲初始化失敗:', e);
-        alert('遊戲初始化失敗，請重新載入頁面');
+        console.error('錯誤詳情:', e.message);
+        console.error('錯誤堆疊:', e.stack);
+        
+        // 顯示更詳細的錯誤訊息
+        const errorMsg = `遊戲初始化失敗：${e.message}`;
+        if (document.getElementById('message')) {
+            document.getElementById('message').textContent = errorMsg;
+            document.getElementById('message').className = 'message lose';
+        } else {
+            alert(errorMsg);
+        }
     }
 }
 
