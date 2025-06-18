@@ -55,6 +55,9 @@ const PAYLINES = [
     [[0,2], [1,1], [2,0], [3,1], [4,2]]  // ↙↖
 ];
 
+// 新增變數保存最後的盤面
+let lastBoard = null;
+
 // 顯示中獎線
 function showWinLine(lineIndexes) {
     const winLines = document.querySelectorAll('.win-line');
@@ -183,18 +186,16 @@ function endBonusGame() {
     bonusModal.style.display = 'none';
     showMessage(`BONUS GAME 結束！總共贏得 ${bonusTotalWin} 點！`, '#388e3c');
     
-    // 重置轉動狀態
+    // 重置轉動狀態並顯示最後的盤面
     setTimeout(() => {
         isSpinning = false;
         spinButton.disabled = false;
         autoButton.disabled = false;
         betInput.disabled = false;
         
-        reels.forEach(reel => {
-            const inner = reel.querySelector('.reel-inner');
-            inner.style.transition = 'none';
-            inner.style.transform = 'translateY(0)';
-        });
+        if (lastBoard) {
+            renderReels(lastBoard);
+        }
     }, 300);
 }
 
@@ -345,6 +346,7 @@ window.onload = () => {
     
     // 初始化輪盤為隨機盤面
     const initialBoard = getRandomBoard();
+    lastBoard = initialBoard; // 保存初始盤面
     renderReels(initialBoard);
     
     // 拉桿互動
@@ -387,7 +389,7 @@ window.onload = () => {
     });
 };
 
-// 修改 spinAllReels53 函數中的最終盤面顯示
+// 修改 spinAllReels53 函數
 async function spinAllReels53(duration = 2500) {
     return new Promise(async (resolve) => {
         try {
@@ -455,7 +457,8 @@ async function spinAllReels53(duration = 2500) {
 
             // 最終停止位置
             renderReels(finalBoard);
-
+            lastBoard = finalBoard; // 保存最後的盤面
+            
             setTimeout(() => {
                 resolve(finalBoard);
             }, 300);
@@ -463,6 +466,7 @@ async function spinAllReels53(duration = 2500) {
             console.error('動畫錯誤：', error);
             const errorBoard = getRandomBoard();
             renderReels(errorBoard);
+            lastBoard = errorBoard; // 保存錯誤時的盤面
             resolve(errorBoard);
         }
     });
