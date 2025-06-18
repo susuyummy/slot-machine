@@ -7,7 +7,7 @@ const CONFIG = {
     MAX_BET: 100,
     INITIAL_BALANCE: 1000,
     SPIN_DURATION: 2500,
-    DEBUG_MODE: false
+    DEBUG_MODE: true
 };
 
 // ===== 符號定義 =====
@@ -187,7 +187,7 @@ class RenderSystem {
                 const img = document.createElement('img');
                 img.src = SYMBOLS.files[symbolIndex];
                 img.alt = SYMBOLS.names[symbolIndex];
-                img.style.cssText = 'width:70px;height:70px;object-fit:cover;border:2px solid #fff;border-radius:5px;margin:2px;background:#f8f9fa;display:block;flex-shrink:0;';
+                img.style.cssText = 'width:66px;height:66px;object-fit:cover;border:2px solid #fff;border-radius:5px;margin:2px auto;background:#f8f9fa;display:block;flex-shrink:0;';
                 
                 // 添加調試屬性
                 img.dataset.col = col;
@@ -199,7 +199,7 @@ class RenderSystem {
                     console.warn(`圖片加載失敗: ${img.src}`);
                     img.style.display = 'none';
                     const emoji = document.createElement('div');
-                    emoji.style.cssText = 'width:70px;height:70px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:#f8f9fa;border:2px solid #fff;border-radius:5px;margin:2px;flex-shrink:0;';
+                    emoji.style.cssText = 'width:66px;height:66px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:#f8f9fa;border:2px solid #fff;border-radius:5px;margin:2px auto;flex-shrink:0;';
                     emoji.textContent = SYMBOLS.names[symbolIndex].split(' ')[0];
                     emoji.dataset.col = col;
                     emoji.dataset.row = row;
@@ -315,7 +315,7 @@ class AnimationSystem {
                         const img = document.createElement('img');
                         img.src = SYMBOLS.files[Math.floor(Math.random() * SYMBOLS.files.length)];
                         img.alt = 'symbol';
-                        img.style.cssText = 'width:70px;height:70px;object-fit:cover;border:2px solid #fff;border-radius:5px;margin:2px;background:#f8f9fa;display:block;';
+                        img.style.cssText = 'width:66px;height:66px;object-fit:cover;border:2px solid #fff;border-radius:5px;margin:2px auto;background:#f8f9fa;display:block;flex-shrink:0;';
                         inner.appendChild(img);
                     }
                     
