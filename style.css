@@ -276,7 +276,16 @@ body {
     gap: 15px;
 }
 
-.bet-section label {
+/* ===== 模式選擇區域 ===== */
+.mode-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.bet-section label,
+.mode-section label {
     font-size: 1.2rem;
     font-weight: bold;
     color: #ffd700;
@@ -339,6 +348,45 @@ body {
     background: #ffd700;
     color: #2c3e50;
     transform: scale(1.05);
+}
+
+/* ===== 模式按鈕 ===== */
+.mode-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.mode-btn {
+    padding: 10px 15px;
+    border: none;
+    background: linear-gradient(145deg, #95a5a6, #7f8c8d);
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    min-width: 100px;
+}
+
+.mode-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(149, 165, 166, 0.4);
+}
+
+.mode-btn.active {
+    background: linear-gradient(145deg, #e74c3c, #c0392b);
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+}
+
+.mode-description {
+    font-size: 0.85rem;
+    color: #bdc3c7;
+    text-align: center;
+    font-style: italic;
+    max-width: 200px;
 }
 
 /* ===== 遊戲按鈕 ===== */

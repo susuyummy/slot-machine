@@ -7,7 +7,8 @@ const CONFIG = {
     MAX_BET: 100,
     INITIAL_BALANCE: 1000,
     SPIN_DURATION: 2500,
-    DEBUG_MODE: false
+    DEBUG_MODE: false,
+    PAYLINE_MODE: "leftmost" // "leftmost"=國際主流規則, "any"=任意連續三連都算
 };
 
 // ===== 符號定義 =====
@@ -93,7 +94,11 @@ const elements = {
     
     // Debug
     debugPanel: document.getElementById('debug-panel'),
-    debugContent: document.getElementById('debug-content')
+    debugContent: document.getElementById('debug-content'),
+    
+    // 模式切換
+    modeButtons: document.querySelectorAll('.mode-btn'),
+    modeDescription: document.getElementById('mode-description')
 };
 
 // ===== 符號配置驗證 =====
@@ -458,51 +463,114 @@ class PayoutSystem {
         
         GameUtils.debugLog('Checking payline:', {
             payline,
+            mode: CONFIG.PAYLINE_MODE,
             symbolIndexes: line,
             symbolTypes: line.map(idx => SYMBOLS.types[idx]),
             symbolNames: line.map(idx => SYMBOLS.names[idx])
         });
         
-        // 從左開始計算連續相同符號
-        const firstSymbolIndex = line[0];
-        const firstSymbolType = SYMBOLS.types[firstSymbolIndex];
-        const firstSymbolName = SYMBOLS.names[firstSymbolIndex];
-        
-        let consecutiveCount = 1; // 從第一個符號開始計算
-        
-        // 檢查後續符號是否與第一個符號相同
-        for (let i = 1; i < line.length; i++) {
-            const currentSymbolType = SYMBOLS.types[line[i]];
-            if (currentSymbolType === firstSymbolType) {
-                consecutiveCount++;
-            } else {
-                break; // 遇到不同符號就停止
-            }
-        }
-        
-        GameUtils.debugLog('Payline analysis:', {
-            firstSymbolType,
-            firstSymbolName,
-            consecutiveCount,
-            isWin: consecutiveCount >= 3
-        });
-        
         let winAmount = 0;
         let message = '';
         
-        // 只有連續3個或以上相同符號才算中獎
-        if (consecutiveCount >= 3) {
-            const multiplier = this.getMultiplier(firstSymbolType, consecutiveCount);
-            winAmount = betAmount * multiplier;
-            message = `${consecutiveCount}個${firstSymbolName} ×${multiplier}`;
+        if (CONFIG.PAYLINE_MODE === "leftmost") {
+            // 國際主流規則：只從最左起算連線
+            const firstSymbolIndex = line[0];
+            const firstSymbolType = SYMBOLS.types[firstSymbolIndex];
+            const firstSymbolName = SYMBOLS.names[firstSymbolIndex];
             
-            GameUtils.debugLog('Win detected:', {
-                symbolType: firstSymbolType,
-                count: consecutiveCount,
-                multiplier,
-                winAmount,
-                message
+            let consecutiveCount = 1;
+            
+            // 檢查後續符號是否與第一個符號相同
+            for (let i = 1; i < line.length; i++) {
+                if (SYMBOLS.types[line[i]] === firstSymbolType) {
+                    consecutiveCount++;
+                } else {
+                    break; // 遇到不同符號就停止
+                }
+            }
+            
+            GameUtils.debugLog('Leftmost mode analysis:', {
+                firstSymbolType,
+                firstSymbolName,
+                consecutiveCount,
+                isWin: consecutiveCount >= 3
             });
+            
+            if (consecutiveCount >= 3) {
+                const multiplier = this.getMultiplier(firstSymbolType, consecutiveCount);
+                winAmount = betAmount * multiplier;
+                message = `${consecutiveCount}個${firstSymbolName} ×${multiplier}`;
+                
+                GameUtils.debugLog('Leftmost win detected:', {
+                    symbolType: firstSymbolType,
+                    count: consecutiveCount,
+                    multiplier,
+                    winAmount,
+                    message
+                });
+            }
+            
+        } else if (CONFIG.PAYLINE_MODE === "any") {
+            // 自訂規則：一條線內任意連續三連（或更多）都算
+            let maxCount = 1;
+            let maxType = SYMBOLS.types[line[0]];
+            let maxSymbolIndex = line[0];
+            let maxStart = 0;
+            
+            let currentCount = 1;
+            let currentType = SYMBOLS.types[line[0]];
+            let currentStart = 0;
+            
+            for (let i = 1; i < line.length; i++) {
+                const symbolType = SYMBOLS.types[line[i]];
+                
+                if (symbolType === currentType) {
+                    currentCount++;
+                } else {
+                    // 檢查當前連續是否為最長
+                    if (currentCount > maxCount) {
+                        maxCount = currentCount;
+                        maxType = currentType;
+                        maxSymbolIndex = line[currentStart];
+                        maxStart = currentStart;
+                    }
+                    
+                    // 重置為新的符號類型
+                    currentType = symbolType;
+                    currentCount = 1;
+                    currentStart = i;
+                }
+            }
+            
+            // 檢查最後一段連續
+            if (currentCount > maxCount) {
+                maxCount = currentCount;
+                maxType = currentType;
+                maxSymbolIndex = line[currentStart];
+                maxStart = currentStart;
+            }
+            
+            GameUtils.debugLog('Any mode analysis:', {
+                maxType,
+                maxCount,
+                maxStart,
+                isWin: maxCount >= 3
+            });
+            
+            if (maxCount >= 3) {
+                const multiplier = this.getMultiplier(maxType, maxCount);
+                winAmount = betAmount * multiplier;
+                message = `${maxCount}個${SYMBOLS.names[maxSymbolIndex]} ×${multiplier}`;
+                
+                GameUtils.debugLog('Any mode win detected:', {
+                    symbolType: maxType,
+                    count: maxCount,
+                    startPosition: maxStart,
+                    multiplier,
+                    winAmount,
+                    message
+                });
+            }
         }
         
         return { winAmount, message };
@@ -662,6 +730,31 @@ class GameSystem {
     }
 }
 
+// ===== 模式切換系統 =====
+class ModeSystem {
+    static setMode(mode) {
+        CONFIG.PAYLINE_MODE = mode;
+        this.updateModeButtons();
+        this.updateModeDescription();
+        GameUtils.debugLog('Mode changed to:', mode);
+    }
+    
+    static updateModeButtons() {
+        elements.modeButtons.forEach(btn => {
+            const btnMode = btn.dataset.mode;
+            btn.classList.toggle('active', btnMode === CONFIG.PAYLINE_MODE);
+        });
+    }
+    
+    static updateModeDescription() {
+        const descriptions = {
+            leftmost: '從最左邊開始連續相同符號',
+            any: '線上任意位置連續3個以上相同符號'
+        };
+        elements.modeDescription.textContent = descriptions[CONFIG.PAYLINE_MODE] || '';
+    }
+}
+
 // ===== 下注系統 =====
 class BettingSystem {
     static setBet(amount) {
@@ -747,6 +840,14 @@ class EventHandler {
             });
         });
         
+        // 模式切換按鈕
+        elements.modeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const mode = btn.dataset.mode;
+                ModeSystem.setMode(mode);
+            });
+        });
+        
         // 鍵盤快捷鍵
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' && !gameState.isSpinning) {
@@ -777,6 +878,10 @@ class GameInitializer {
         
         // 初始化下注
         BettingSystem.setBet(CONFIG.MIN_BET);
+        
+        // 初始化模式
+        ModeSystem.updateModeButtons();
+        ModeSystem.updateModeDescription();
         
         // 初始化盤面
         const initialBoard = GameUtils.getRandomBoard();
