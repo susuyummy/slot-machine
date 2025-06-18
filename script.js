@@ -7,7 +7,7 @@ const CONFIG = {
     MAX_BET: 100,
     INITIAL_BALANCE: 1000,
     SPIN_DURATION: 2500,
-    DEBUG_MODE: true
+    DEBUG_MODE: false
 };
 
 // ===== 符號定義 =====
@@ -95,6 +95,28 @@ const elements = {
     debugPanel: document.getElementById('debug-panel'),
     debugContent: document.getElementById('debug-content')
 };
+
+// ===== 符號配置驗證 =====
+function validateSymbolsConfig() {
+    const filesLength = SYMBOLS.files.length;
+    const typesLength = SYMBOLS.types.length;
+    const namesLength = SYMBOLS.names.length;
+    
+    if (filesLength !== typesLength || typesLength !== namesLength) {
+        console.error('❌ SYMBOLS 配置錯誤！陣列長度不一致：', {
+            files: filesLength,
+            types: typesLength,
+            names: namesLength
+        });
+        return false;
+    }
+    
+    console.log('✅ SYMBOLS 配置正確，共有', filesLength, '個符號：');
+    for (let i = 0; i < filesLength; i++) {
+        console.log(`  ${i}: ${SYMBOLS.names[i]} (${SYMBOLS.types[i]}) - ${SYMBOLS.files[i]}`);
+    }
+    return true;
+}
 
 // ===== 工具函數 =====
 class GameUtils {
@@ -386,7 +408,15 @@ class AnimationSystem {
 // ===== 獎金計算系統 =====
 class PayoutSystem {
     static calculateWin(board, betAmount) {
-        GameUtils.debugLog('Calculating win for board:', board);
+        GameUtils.debugLog('=== 開始計算中獎 ===');
+        GameUtils.debugLog('盤面:', board);
+        GameUtils.debugLog('下注金額:', betAmount);
+        
+        // 顯示盤面符號類型
+        const boardTypes = board.map(col => 
+            col.map(symbolIndex => SYMBOLS.types[symbolIndex])
+        );
+        GameUtils.debugLog('盤面符號類型:', boardTypes);
         
         let result = {
             winAmount: 0,
@@ -397,11 +427,15 @@ class PayoutSystem {
 
         // 檢查每條中獎線
         PAYLINES.forEach((payline, lineIndex) => {
+            GameUtils.debugLog(`--- 檢查中獎線 ${lineIndex + 1} ---`);
             const lineResult = this.checkPayline(board, payline, betAmount);
             if (lineResult.winAmount > 0) {
                 result.winAmount += lineResult.winAmount;
                 result.message += (result.message ? ' + ' : '') + lineResult.message;
                 result.winLines.push(lineIndex);
+                GameUtils.debugLog(`中獎線 ${lineIndex + 1} 中獎！`, lineResult);
+            } else {
+                GameUtils.debugLog(`中獎線 ${lineIndex + 1} 沒有中獎`);
             }
         });
 
@@ -411,40 +445,64 @@ class PayoutSystem {
         
         if (specialResult.free) {
             result.message += ' 🎁 獲得免費轉盤!';
+            GameUtils.debugLog('觸發免費轉盤！');
         }
 
-        GameUtils.debugLog('Win calculation result:', result);
+        GameUtils.debugLog('=== 最終中獎結果 ===', result);
         return result;
     }
     
     static checkPayline(board, payline, betAmount) {
-        let line = [];
+        // 獲取這條線上的符號索引
+        const line = payline.map(([col, row]) => board[col][row]);
         
-        // 獲取這條線上的符號
-        payline.forEach(([col, row]) => {
-            line.push(board[col][row]);
+        GameUtils.debugLog('Checking payline:', {
+            payline,
+            symbolIndexes: line,
+            symbolTypes: line.map(idx => SYMBOLS.types[idx]),
+            symbolNames: line.map(idx => SYMBOLS.names[idx])
         });
         
-        // 計算連續相同符號的數量（從左開始）
-        let firstSymbol = line[0];
-        let firstType = SYMBOLS.types[firstSymbol];
-        let count = 1;
+        // 從左開始計算連續相同符號
+        const firstSymbolIndex = line[0];
+        const firstSymbolType = SYMBOLS.types[firstSymbolIndex];
+        const firstSymbolName = SYMBOLS.names[firstSymbolIndex];
         
+        let consecutiveCount = 1; // 從第一個符號開始計算
+        
+        // 檢查後續符號是否與第一個符號相同
         for (let i = 1; i < line.length; i++) {
-            if (SYMBOLS.types[line[i]] === firstType) {
-                count++;
+            const currentSymbolType = SYMBOLS.types[line[i]];
+            if (currentSymbolType === firstSymbolType) {
+                consecutiveCount++;
             } else {
-                break;
+                break; // 遇到不同符號就停止
             }
         }
+        
+        GameUtils.debugLog('Payline analysis:', {
+            firstSymbolType,
+            firstSymbolName,
+            consecutiveCount,
+            isWin: consecutiveCount >= 3
+        });
         
         let winAmount = 0;
         let message = '';
         
-        if (count >= 3) {
-            const multiplier = this.getMultiplier(firstType, count);
+        // 只有連續3個或以上相同符號才算中獎
+        if (consecutiveCount >= 3) {
+            const multiplier = this.getMultiplier(firstSymbolType, consecutiveCount);
             winAmount = betAmount * multiplier;
-            message = `${count}個${SYMBOLS.names[firstSymbol]} ×${multiplier}`;
+            message = `${consecutiveCount}個${firstSymbolName} ×${multiplier}`;
+            
+            GameUtils.debugLog('Win detected:', {
+                symbolType: firstSymbolType,
+                count: consecutiveCount,
+                multiplier,
+                winAmount,
+                message
+            });
         }
         
         return { winAmount, message };
@@ -707,6 +765,12 @@ class EventHandler {
 class GameInitializer {
     static init() {
         GameUtils.debugLog('Initializing game...');
+        
+        // 驗證符號配置
+        if (!validateSymbolsConfig()) {
+            alert('遊戲配置錯誤，請檢查符號設定！');
+            return;
+        }
         
         // 載入餘額
         GameUtils.loadBalance();
