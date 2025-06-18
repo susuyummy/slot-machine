@@ -175,33 +175,46 @@ class RenderSystem {
             const reel = elements.reels[col];
             const inner = reel.querySelector('.reel-inner');
             
-            // 清除舊內容
+            // 清除舊內容並重置樣式
             inner.innerHTML = '';
             inner.style.transition = 'none';
             inner.style.transform = 'translateY(0px)';
+            inner.style.display = 'flex';
+            inner.style.flexDirection = 'column';
             
             for (let row = 0; row < CONFIG.ROW_COUNT; row++) {
                 const symbolIndex = board[col][row];
                 const img = document.createElement('img');
                 img.src = SYMBOLS.files[symbolIndex];
                 img.alt = SYMBOLS.names[symbolIndex];
-                img.style.cssText = 'width:70px;height:70px;object-fit:cover;border:2px solid #fff;border-radius:5px;margin:2px;background:#f8f9fa;display:block;';
+                img.style.cssText = 'width:70px;height:70px;object-fit:cover;border:2px solid #fff;border-radius:5px;margin:2px;background:#f8f9fa;display:block;flex-shrink:0;';
+                
+                // 添加調試屬性
+                img.dataset.col = col;
+                img.dataset.row = row;
+                img.dataset.symbol = symbolIndex;
                 
                 img.onerror = () => {
                     // 如果圖片加載失敗，顯示 emoji
+                    console.warn(`圖片加載失敗: ${img.src}`);
                     img.style.display = 'none';
                     const emoji = document.createElement('div');
-                    emoji.style.cssText = 'width:70px;height:70px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:#f8f9fa;border:2px solid #fff;border-radius:5px;margin:2px;';
+                    emoji.style.cssText = 'width:70px;height:70px;display:flex;align-items:center;justify-content:center;font-size:2rem;background:#f8f9fa;border:2px solid #fff;border-radius:5px;margin:2px;flex-shrink:0;';
                     emoji.textContent = SYMBOLS.names[symbolIndex].split(' ')[0];
+                    emoji.dataset.col = col;
+                    emoji.dataset.row = row;
+                    emoji.dataset.symbol = symbolIndex;
                     inner.appendChild(emoji);
                 };
                 
                 inner.appendChild(img);
             }
+            
+            GameUtils.debugLog(`Reel ${col} rendered with ${inner.children.length} symbols`);
         }
         
         gameState.lastBoard = board;
-        GameUtils.debugLog('Board rendered successfully');
+        GameUtils.debugLog('Board rendered successfully, board:', board);
     }
     
     static showWinLines(lineIndexes) {
@@ -231,12 +244,18 @@ class RenderSystem {
     
     static highlightWinningSymbols(lineIndex) {
         const payline = PAYLINES[lineIndex];
+        GameUtils.debugLog(`Highlighting line ${lineIndex}:`, payline);
+        
         payline.forEach(([col, row]) => {
             const reel = elements.reels[col];
             const inner = reel.querySelector('.reel-inner');
-            const symbols = inner.querySelectorAll('img');
+            const symbols = inner.children; // 使用 children 而不是 querySelectorAll
+            
             if (symbols[row]) {
                 symbols[row].classList.add('winning-symbol');
+                GameUtils.debugLog(`Added highlight to symbol at [${col},${row}]`);
+            } else {
+                GameUtils.debugLog(`No symbol found at [${col},${row}], available: ${symbols.length}`);
             }
         });
     }

@@ -189,22 +189,22 @@ body {
 }
 
 /* 中獎線位置 */
-.line-1 { top: 35px; left: 20px; right: 20px; }
-.line-2 { top: 115px; left: 20px; right: 20px; }
-.line-3 { top: 195px; left: 20px; right: 20px; }
+.line-1 { top: 37px; left: 20px; right: 20px; }  /* 上排：37px (74/2) */
+.line-2 { top: 111px; left: 20px; right: 20px; } /* 中排：111px (74*1.5) */
+.line-3 { top: 185px; left: 20px; right: 20px; } /* 下排：185px (74*2.5) */
 .line-4 { 
-    top: 35px; left: 20px; right: 20px; 
+    top: 37px; left: 20px; 
     background: linear-gradient(135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
-    transform-origin: left;
-    transform: rotate(22deg);
-    width: 420px;
+    transform-origin: left center;
+    transform: rotate(18.43deg); /* arctan(148/450) */
+    width: 470px;
 }
 .line-5 { 
-    top: 195px; left: 20px; right: 20px;
+    top: 185px; left: 20px;
     background: linear-gradient(-135deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3);
-    transform-origin: left;
-    transform: rotate(-22deg);
-    width: 420px;
+    transform-origin: left center;
+    transform: rotate(-18.43deg); /* arctan(-148/450) */
+    width: 470px;
 }
 
 /* ===== 拉桿 ===== */
