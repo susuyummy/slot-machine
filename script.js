@@ -63,6 +63,204 @@ const GAME_CONFIG = {
     INITIAL_BALANCE: 1000
 };
 
+// ===== 3D圓柱體轉輪類別 =====
+class CylinderReel {
+    constructor(container, config) {
+        this.container = container;
+        this.config = config;
+        this.symbols = [];
+        this.currentAngle = 0;
+        this.targetAngle = 0;
+        this.isSpinning = false;
+        
+        this.init();
+    }
+    
+    init() {
+        // 清空容器
+        this.container.innerHTML = '';
+        
+        // 設置3D樣式
+        this.container.style.transformStyle = 'preserve-3d';
+        this.container.style.perspective = `${this.config.CYLINDER_CONFIG.PERSPECTIVE}px`;
+        
+        // 創建圓柱體容器
+        this.cylinder = document.createElement('div');
+        this.cylinder.className = 'cylinder';
+        this.cylinder.style.cssText = `
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.1s linear;
+        `;
+        
+        // 計算每個符號的角度
+        const angleStep = 360 / this.config.CYLINDER_CONFIG.SYMBOLS_COUNT;
+        
+        // 創建圓柱體上的符號
+        for (let i = 0; i < this.config.CYLINDER_CONFIG.SYMBOLS_COUNT; i++) {
+            const symbolElement = document.createElement('div');
+            symbolElement.className = 'cylinder-symbol';
+            
+            // 隨機選擇符號
+            const randomSymbol = this.getWeightedRandomSymbol();
+            
+            // 計算3D位置
+            const angle = i * angleStep;
+            const radian = (angle * Math.PI) / 180;
+            const x = Math.sin(radian) * this.config.CYLINDER_CONFIG.RADIUS;
+            const z = Math.cos(radian) * this.config.CYLINDER_CONFIG.RADIUS;
+            
+            symbolElement.style.cssText = `
+                position: absolute;
+                width: 100%;
+                height: ${this.config.CYLINDER_CONFIG.SYMBOL_HEIGHT}px;
+                top: 50%;
+                left: 0;
+                transform: translate3d(${x}px, -50%, ${z}px) rotateY(${angle}deg);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(135deg, #3a4a5c, #2c3e50);
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 8px;
+                backface-visibility: hidden;
+            `;
+            
+            // 添加符號內容
+            this.addSymbolContent(symbolElement, randomSymbol);
+            
+            this.cylinder.appendChild(symbolElement);
+            this.symbols.push({
+                element: symbolElement,
+                symbol: randomSymbol,
+                angle: angle
+            });
+        }
+        
+        this.container.appendChild(this.cylinder);
+    }
+    
+    addSymbolContent(element, symbolFile) {
+        if (symbolFile && (symbolFile.includes('.jpg') || symbolFile.includes('.jpeg') || symbolFile.includes('.png') || symbolFile.includes('.JPG'))) {
+            const img = document.createElement('img');
+            img.src = symbolFile;
+            img.alt = this.getSymbolName(symbolFile);
+            img.style.cssText = 'width: 80%; height: 80%; object-fit: cover; border-radius: 5px;';
+            
+            img.onload = () => {
+                console.log('✅ 圓柱體圖片載入成功:', symbolFile);
+            };
+            
+            img.onerror = () => {
+                console.warn('❌ 圓柱體圖片載入失敗:', symbolFile);
+                const symbolEmoji = this.getSymbolEmoji(symbolFile);
+                element.innerHTML = '';
+                element.textContent = symbolEmoji;
+                element.style.fontSize = '2.5rem';
+                element.style.color = '#fff';
+            };
+            
+            element.appendChild(img);
+        } else {
+            const symbolEmoji = this.getSymbolEmoji(symbolFile) || '❓';
+            element.textContent = symbolEmoji;
+            element.style.fontSize = '2.5rem';
+            element.style.color = '#fff';
+        }
+    }
+    
+    getWeightedRandomSymbol() {
+        const totalWeight = GAME_CONFIG.SYMBOL_WEIGHTS.reduce((sum, weight) => sum + weight, 0);
+        let random = Math.random() * totalWeight;
+        
+        for (let i = 0; i < GAME_CONFIG.SYMBOLS.length; i++) {
+            random -= GAME_CONFIG.SYMBOL_WEIGHTS[i];
+            if (random <= 0) {
+                return GAME_CONFIG.SYMBOLS[i];
+            }
+        }
+        
+        return GAME_CONFIG.SYMBOLS[0];
+    }
+    
+    getSymbolName(symbolFile) {
+        const index = GAME_CONFIG.SYMBOLS.indexOf(symbolFile);
+        return index >= 0 ? GAME_CONFIG.SYMBOL_NAMES[index] : '未知符號';
+    }
+    
+    getSymbolEmoji(symbolFile) {
+        const index = GAME_CONFIG.SYMBOLS.indexOf(symbolFile);
+        return index >= 0 ? GAME_CONFIG.SYMBOL_EMOJIS[index] : '❓';
+    }
+    
+    spin() {
+        this.isSpinning = true;
+        
+        // 計算目標角度
+        const spins = this.config.ANIMATION_CONFIG.SPIN_ROUNDS * 360;
+        const randomAngle = Math.random() * 360;
+        this.targetAngle = this.currentAngle + spins + randomAngle;
+        
+        // 設置快速旋轉
+        this.cylinder.style.transition = 'none';
+        this.startSpinAnimation();
+    }
+    
+    startSpinAnimation() {
+        if (!this.isSpinning) return;
+        
+        this.currentAngle += 18; // 每幀轉動18度
+        this.cylinder.style.transform = `rotateX(${this.currentAngle}deg)`;
+        
+        requestAnimationFrame(() => this.startSpinAnimation());
+    }
+    
+    stop(finalSymbols) {
+        this.isSpinning = false;
+        
+        // 計算最終角度以顯示指定符號
+        const angleStep = 360 / this.config.CYLINDER_CONFIG.SYMBOLS_COUNT;
+        const targetSymbolIndex = this.findSymbolIndex(finalSymbols[1]); // 使用中間符號
+        const finalAngle = targetSymbolIndex * angleStep;
+        
+        // 添加隨機回滾
+        const rollback = (Math.random() - 0.5) * this.config.ANIMATION_CONFIG.ROLLBACK_ANGLE;
+        this.targetAngle = finalAngle + rollback;
+        
+        // 設置緩動停止
+        this.cylinder.style.transition = `transform ${this.config.ANIMATION_CONFIG.SPIN_DURATION / 1000}s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+        this.cylinder.style.transform = `rotateX(${this.targetAngle}deg)`;
+        
+        this.currentAngle = this.targetAngle;
+    }
+    
+    findSymbolIndex(targetSymbol) {
+        for (let i = 0; i < this.symbols.length; i++) {
+            if (this.symbols[i].symbol === targetSymbol) {
+                return i;
+            }
+        }
+        return 0;
+    }
+    
+    getVisibleSymbols() {
+        // 根據當前角度計算可見的符號
+        const angleStep = 360 / this.config.CYLINDER_CONFIG.SYMBOLS_COUNT;
+        const normalizedAngle = ((this.currentAngle % 360) + 360) % 360;
+        const centerIndex = Math.round(normalizedAngle / angleStep) % this.config.CYLINDER_CONFIG.SYMBOLS_COUNT;
+        
+        const visibleSymbols = [];
+        for (let i = -1; i <= 1; i++) {
+            const index = (centerIndex + i + this.config.CYLINDER_CONFIG.SYMBOLS_COUNT) % this.config.CYLINDER_CONFIG.SYMBOLS_COUNT;
+            visibleSymbols.push(this.symbols[index].symbol);
+        }
+        
+        return visibleSymbols;
+    }
+}
+
 // ===== 遊戲狀態管理 =====
 class GameState {
     constructor() {
@@ -735,6 +933,7 @@ class EventManager {
     constructor(gameLogic, domManager) {
         this.gameLogic = gameLogic;
         this.dom = domManager;
+        this.gameState = gameLogic.gameState;
         this.initEvents();
     }
     
@@ -797,7 +996,7 @@ class EventManager {
         const maxBetBtn = document.getElementById('max-bet');
         if (maxBetBtn) {
             maxBetBtn.addEventListener('click', () => {
-                const maxBet = Math.min(gameState.balance, GAME_CONFIG.MAX_BET);
+                const maxBet = Math.min(this.gameState.balance, GAME_CONFIG.MAX_BET);
                 this.updateBet(maxBet);
                 this.updateQuickBetButtons(maxBet);
             });
@@ -805,7 +1004,7 @@ class EventManager {
         
         // 鍵盤事件
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && !gameState.isSpinning) {
+            if (e.code === 'Space' && !this.gameState.isSpinning) {
                 e.preventDefault();
                 this.gameLogic.spin();
             }
@@ -816,12 +1015,12 @@ class EventManager {
     
     // 更新下注金額
     updateBet(newBet) {
-        if (newBet >= GAME_CONFIG.MIN_BET && newBet <= GAME_CONFIG.MAX_BET && newBet <= gameState.balance) {
-            gameState.currentBet = newBet;
-            this.dom.updateDisplay(gameState);
+        if (newBet >= GAME_CONFIG.MIN_BET && newBet <= GAME_CONFIG.MAX_BET && newBet <= this.gameState.balance) {
+            this.gameState.currentBet = newBet;
+            this.dom.updateDisplay(this.gameState);
             this.updateBetSelector(newBet);
             console.log('💰 下注金額更新為:', newBet);
-        } else if (newBet > gameState.balance) {
+        } else if (newBet > this.gameState.balance) {
             this.dom.showMessage('💰 下注金額不能超過餘額！', 'lose');
         } else {
             this.dom.showMessage(`💰 下注金額必須在 ${GAME_CONFIG.MIN_BET} - ${GAME_CONFIG.MAX_BET} 之間！`, 'lose');
@@ -831,7 +1030,7 @@ class EventManager {
     // 調整下注金額（增減）
     adjustBet(direction) {
         const betOptions = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500];
-        const currentIndex = betOptions.indexOf(gameState.currentBet);
+        const currentIndex = betOptions.indexOf(this.gameState.currentBet);
         
         let newIndex;
         if (direction > 0) {
