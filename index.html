@@ -7,134 +7,176 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="game-container">
-        <header class="game-header">
-            <h1>🎰 拉霸機遊戲</h1>
-            <div class="balance-display">
-                💰 餘額: <span id="balance">1000</span> 點
+    <div class="container">
+        <h1 class="title">🎰 拉霸機遊戲</h1>
+        
+        <!-- 資訊面板 -->
+        <div class="info-panel">
+            <div class="info-item">
+                <div class="info-label">餘額</div>
+                <div class="info-value" id="balance">1000</div>
             </div>
-        </header>
+            <div class="info-item">
+                <div class="info-label">下注</div>
+                <div class="info-value" id="bet-display">10</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">獎金</div>
+                <div class="info-value" id="win-display">0</div>
+            </div>
+        </div>
 
-        <main class="game-main">
-            <!-- 拉霸機主體 -->
-            <div class="slot-machine">
-                <div class="machine-frame">
-                    <!-- 中獎線 -->
-                    <div class="paylines">
-                        <div class="win-line line-1"></div>
-                        <div class="win-line line-2"></div>
-                        <div class="win-line line-3"></div>
-                        <div class="win-line line-4"></div>
-                        <div class="win-line line-5"></div>
-                    </div>
-                    
-                    <!-- 轉輪區域 -->
-                    <div class="reels-container">
-                        <div class="reel" id="reel1">
-                            <div class="reel-inner"></div>
-                        </div>
-                        <div class="reel" id="reel2">
-                            <div class="reel-inner"></div>
-                        </div>
-                        <div class="reel" id="reel3">
-                            <div class="reel-inner"></div>
-                        </div>
-                        <div class="reel" id="reel4">
-                            <div class="reel-inner"></div>
-                        </div>
-                        <div class="reel" id="reel5">
-                            <div class="reel-inner"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- 拉桿 -->
-                <div class="lever-container">
-                    <div class="lever" id="lever">
-                        <div class="lever-handle"></div>
-                    </div>
+        <!-- 轉輪區域 -->
+        <div class="reels-container">
+            <div class="paylines" id="paylines"></div>
+            
+            <div class="reel" id="reel-0">
+                <div class="reel-content">
+                    <div class="symbol">🎨</div>
+                    <div class="symbol">🖼️</div>
+                    <div class="symbol">🐰</div>
                 </div>
             </div>
-
-            <!-- 控制面板 -->
-            <div class="control-panel">
-                <!-- 下注控制 -->
-                <div class="bet-section">
-                    <label for="bet">下注金額:</label>
-                    <div class="bet-controls">
-                        <button id="bet-minus" class="bet-btn">-</button>
-                        <input type="number" id="bet" min="10" max="100" step="10" value="10">
-                        <button id="bet-plus" class="bet-btn">+</button>
-                    </div>
-                    <div class="preset-bets">
-                        <button class="preset-btn active" data-bet="10">10</button>
-                        <button class="preset-btn" data-bet="20">20</button>
-                        <button class="preset-btn" data-bet="50">50</button>
-                        <button class="preset-btn" data-bet="100">100</button>
-                    </div>
-                </div>
-
-                <!-- 遊戲模式 -->
-                <div class="mode-section">
-                    <label for="payline-mode">中獎規則:</label>
-                    <div class="mode-controls">
-                        <button id="mode-leftmost" class="mode-btn active" data-mode="leftmost">
-                            📍 國際規則
-                        </button>
-                        <button id="mode-any" class="mode-btn" data-mode="any">
-                            🎯 任意連線
-                        </button>
-                    </div>
-                    <div class="mode-description" id="mode-description">
-                        從最左邊開始連續相同符號
-                    </div>
-                </div>
-
-                <!-- 遊戲按鈕 -->
-                <div class="game-buttons">
-                    <button id="spin-button" class="main-button spin-btn">
-                        🎰 轉動
-                    </button>
-                    <button id="auto-button" class="main-button auto-btn">
-                        🔄 自動
-                    </button>
-                    <button id="stop-auto" class="main-button stop-btn" style="display: none;">
-                        ⏹️ 停止
-                    </button>
+            
+            <div class="reel" id="reel-1">
+                <div class="reel-content">
+                    <div class="symbol">✨</div>
+                    <div class="symbol">💫</div>
+                    <div class="symbol">🐰</div>
                 </div>
             </div>
+            
+            <div class="reel" id="reel-2">
+                <div class="reel-content">
+                    <div class="symbol">🎯</div>
+                    <div class="symbol">🖼️</div>
+                    <div class="symbol">🐰</div>
+                </div>
+            </div>
+            
+            <div class="reel" id="reel-3">
+                <div class="reel-content">
+                    <div class="symbol">🌟</div>
+                    <div class="symbol">💫</div>
+                    <div class="symbol">🐰</div>
+                </div>
+            </div>
+            
+            <div class="reel" id="reel-4">
+                <div class="reel-content">
+                    <div class="symbol">🎨</div>
+                    <div class="symbol">✨</div>
+                    <div class="symbol">🐰</div>
+                </div>
+            </div>
+        </div>
 
-            <!-- 訊息顯示 -->
-            <div id="message" class="message-display"></div>
-        </main>
+        <!-- 控制面板 -->
+        <div class="controls">
+            <div class="control-group">
+                <label for="bet-amount">下注金額:</label>
+                <select id="bet-amount">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+            
+            <button class="btn btn-primary" id="spin-btn">
+                🎰 轉動
+            </button>
+            
+            <button class="btn btn-secondary" id="auto-btn">
+                🔄 自動
+            </button>
+            
+            <button class="btn btn-secondary" id="stop-auto-btn" style="display: none;">
+                ⏹️ 停止
+            </button>
+        </div>
+
+        <!-- 訊息區域 -->
+        <div class="message" id="message">
+            🎰 歡迎來到拉霸機遊戲！選擇下注金額後點擊轉動開始遊戲
+        </div>
 
         <!-- 獎金表 -->
-        <aside class="paytable">
+        <div class="paytable" id="paytable">
             <h3>🏆 獎金表</h3>
-            <div class="paytable-content">
-                <div class="payout-row">
-                    <span class="symbol">💎 鑽石</span>
-                    <span class="payout">3個: ×20 | 4個: ×100 | 5個: ×1000</span>
+            <div class="paytable-grid">
+                <div class="paytable-item">
+                    <img src="IMG_1385.JPG" alt="圖片7" onerror="this.parentElement.innerHTML='<div style=\'font-size:0.8rem;color:#fff;text-align:center;\'>圖片7</div><div class=\'payouts\'><span style=\'color:#ff69b4;\'>3連: ×150</span><span style=\'color:#ff69b4;\'>4連: ×800</span><span style=\'color:#ff69b4;\'>5連: ×3000</span><span style=\'color:#ff1493;\'>⭐ 超級獎勵</span></div>';">
+                    <div class="payouts">
+                        <span style="color: #ff69b4;">3連: ×150</span>
+                        <span style="color: #ff69b4;">4連: ×800</span>
+                        <span style="color: #ff69b4;">5連: ×3000</span>
+                        <span style="color: #ff1493;">⭐ 超級獎勵</span>
+                    </div>
                 </div>
-                <div class="payout-row">
-                    <span class="symbol">其他符號</span>
-                    <span class="payout">3個: ×5 | 4個: ×50 | 5個: ×500</span>
+                <div class="paytable-item">
+                    <img src="71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg" alt="圖片6" onerror="this.parentElement.innerHTML='<div style=\'font-size:0.8rem;color:#fff;text-align:center;\'>圖片6</div><div class=\'payouts\'><span>3連: ×100</span><span>4連: ×500</span><span>5連: ×2000</span></div>';">
+                    <div class="payouts">
+                        <span>3連: ×100</span>
+                        <span>4連: ×500</span>
+                        <span>5連: ×2000</span>
+                    </div>
                 </div>
-                <div class="special-row">
-                    <span class="symbol">🔔 3個鈴鐺</span>
-                    <span class="feature">免費轉盤</span>
+                <div class="paytable-item">
+                    <img src="88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg" alt="圖片5" onerror="this.parentElement.innerHTML='<div style=\'font-size:0.8rem;color:#fff;text-align:center;\'>圖片5</div><div class=\'payouts\'><span>3連: ×50</span><span>4連: ×200</span><span>5連: ×1000</span><span style=\'color:#ff6b6b;\'>🎁 免費轉盤</span></div>';">
+                    <div class="payouts">
+                        <span>3連: ×50</span>
+                        <span>4連: ×200</span>
+                        <span>5連: ×1000</span>
+                        <span style="color: #ff6b6b;">🎁 免費轉盤</span>
+                    </div>
+                </div>
+                <div class="paytable-item">
+                    <img src="C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg" alt="圖片3" onerror="this.parentElement.innerHTML='<div style=\'font-size:0.8rem;color:#fff;text-align:center;\'>圖片3</div><div class=\'payouts\'><span>3連: ×30</span><span>4連: ×100</span><span>5連: ×500</span></div>';">
+                    <div class="payouts">
+                        <span>3連: ×30</span>
+                        <span>4連: ×100</span>
+                        <span>5連: ×500</span>
+                    </div>
+                </div>
+                <div class="paytable-item">
+                    <img src="A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg" alt="圖片4" onerror="this.parentElement.innerHTML='<div style=\'font-size:0.8rem;color:#fff;text-align:center;\'>圖片4</div><div class=\'payouts\'><span>3連: ×20</span><span>4連: ×80</span><span>5連: ×300</span></div>';">
+                    <div class="payouts">
+                        <span>3連: ×20</span>
+                        <span>4連: ×80</span>
+                        <span>5連: ×300</span>
+                    </div>
+                </div>
+                <div class="paytable-item">
+                    <img src="CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg" alt="圖片2" onerror="this.parentElement.innerHTML='<div style=\'font-size:0.8rem;color:#fff;text-align:center;\'>圖片2</div><div class=\'payouts\'><span>3連: ×15</span><span>4連: ×60</span><span>5連: ×200</span></div>';">
+                    <div class="payouts">
+                        <span>3連: ×15</span>
+                        <span>4連: ×60</span>
+                        <span>5連: ×200</span>
+                    </div>
+                </div>
+                <div class="paytable-item">
+                    <img src="IMG_1538.JPG" alt="圖片1" onerror="this.parentElement.innerHTML='<div style=\'font-size:0.8rem;color:#fff;text-align:center;\'>圖片1</div><div class=\'payouts\'><span>3連: ×10</span><span>4連: ×40</span><span>5連: ×100</span></div>';">
+                    <div class="payouts">
+                        <span>3連: ×10</span>
+                        <span>4連: ×40</span>
+                        <span>5連: ×100</span>
+                    </div>
                 </div>
             </div>
-        </aside>
+            <div class="special-rules">
+                <p>⚡ <strong>中獎規則</strong>：5條中獎線（3排橫線 + 2條對角線）</p>
+                <p>⭐ <strong>中獎條件</strong>：同一條線上3個以上相同圖片連線</p>
+                <p>🎁 <strong>免費轉盤</strong>：3個以上圖片5觸發</p>
+                <p>💰 <strong>獎金計算</strong>：下注金額 × 倍數</p>
+                <p>🔄 <strong>自動模式</strong>：點擊自動按鈕可無限轉動</p>
+            </div>
+        </div>
     </div>
 
-    <!-- 特效容器 -->
-    <div id="win-effects" class="win-effects"></div>
-
-    <!-- Debug 面板 -->
-    <div id="debug-panel" class="debug-panel" style="display: none;">
-        <h4>Debug 資訊</h4>
-        <div id="debug-content"></div>
+    <!-- Debug面板 -->
+    <div class="debug-panel" id="debug-panel">
+        <div id="debug-content">Debug模式已啟用</div>
     </div>
 
     <script src="script.js"></script>
