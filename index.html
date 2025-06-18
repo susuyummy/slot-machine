@@ -8,15 +8,15 @@
 </head>
 <body>
     <div class="container">
-        <h1>拉霸機遊戲</h1>
+        <h1>🎰 拉霸機遊戲 🎰</h1>
         <div class="slot-machine">
             <div class="reels-container">
                 <div class="win-lines">
-                    <div class="win-line top"></div>
-                    <div class="win-line middle"></div>
-                    <div class="win-line bottom"></div>
-                    <div class="win-line diagonal1"></div>
-                    <div class="win-line diagonal2"></div>
+                    <div class="win-line top" data-line="0"></div>
+                    <div class="win-line middle" data-line="1"></div>
+                    <div class="win-line bottom" data-line="2"></div>
+                    <div class="win-line diagonal1" data-line="3"></div>
+                    <div class="win-line diagonal2" data-line="4"></div>
                 </div>
                 <div class="reels-group">
                     <div class="reel" id="reel1"><div class="reel-inner"></div></div>
@@ -32,69 +32,110 @@
                 </div>
             </div>
             <div class="controls">
-                <button id="spin-button">開始遊戲</button>
-                <button id="auto-button">自動模式</button>
-                <button id="stop-auto" style="display: none;">停止自動</button>
+                <button id="spin-button" class="btn-primary">🎲 開始遊戲</button>
+                <button id="auto-button" class="btn-auto">🔄 自動模式</button>
+                <button id="stop-auto" class="btn-stop" style="display: none;">⏹️ 停止自動</button>
             </div>
         </div>
+        
         <div class="game-info">
-            <div class="score">
-                <p>餘額: <span id="balance">1000</span></p>
-                <p>下注金額: <input type="number" id="bet" value="10" min="10" max="100"></p>
+            <div class="score-panel">
+                <h3>💰 遊戲資訊</h3>
+                <div class="balance-display">
+                    <p>餘額: <span id="balance">1000</span> 💎</p>
+                </div>
+                <div class="bet-controls">
+                    <label for="bet">下注金額:</label>
+                    <div class="bet-input-group">
+                        <button id="bet-minus" class="bet-btn">-</button>
+                        <input type="number" id="bet" value="10" min="10" max="100" step="10">
+                        <button id="bet-plus" class="bet-btn">+</button>
+                    </div>
+                    <div class="bet-presets">
+                        <button class="preset-btn" data-bet="10">10</button>
+                        <button class="preset-btn" data-bet="25">25</button>
+                        <button class="preset-btn" data-bet="50">50</button>
+                        <button class="preset-btn" data-bet="100">100</button>
+                    </div>
+                </div>
             </div>
+            
             <div class="paytable">
-                <h2>獎金表</h2>
+                <h3>🏆 獎金表</h3>
                 <div class="symbol-info">
-                    <div class="symbol">
-                        <img src="71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg" alt="鑽石">
-                        <div class="multipliers">
-                            <p>5個: 1000倍</p>
-                            <p>4個: 100倍</p>
-                            <p>3個: 20倍</p>
+                    <div class="symbol-row">
+                        <img src="71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg" alt="鑽石" class="symbol-img">
+                        <div class="symbol-pays">
+                            <span class="symbol-name">💎 鑽石</span>
+                            <div class="pays">5個:×1000 | 4個:×100 | 3個:×20</div>
                         </div>
                     </div>
-                    <div class="symbol">
-                        <img src="88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg" alt="星星">
-                        <div class="multipliers">
-                            <p>3個: BONUS遊戲</p>
+                    <div class="symbol-row">
+                        <img src="88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg" alt="星星" class="symbol-img">
+                        <div class="symbol-pays">
+                            <span class="symbol-name">⭐ 星星</span>
+                            <div class="pays special">3個觸發 BONUS GAME</div>
                         </div>
                     </div>
-                    <div class="symbol">
-                        <img src="A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg" alt="鈴鐺">
-                        <div class="multipliers">
-                            <p>3個: 免費轉盤</p>
+                    <div class="symbol-row">
+                        <img src="A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg" alt="鈴鐺" class="symbol-img">
+                        <div class="symbol-pays">
+                            <span class="symbol-name">🔔 鈴鐺</span>
+                            <div class="pays special">3個觸發免費轉盤</div>
                         </div>
                     </div>
-                    <div class="symbol">
-                        <img src="C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg" alt="一般符號">
-                        <div class="multipliers">
-                            <p>5個: 500倍</p>
-                            <p>4個: 50倍</p>
-                            <p>3個: 5倍</p>
+                    <div class="symbol-row">
+                        <img src="C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg" alt="葡萄" class="symbol-img">
+                        <div class="symbol-pays">
+                            <span class="symbol-name">🍇 其他</span>
+                            <div class="pays">5個:×500 | 4個:×50 | 3個:×5</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+        
         <div id="message" class="message"></div>
+        
+        <!-- Debug 面板 -->
+        <div id="debug-panel" class="debug-panel" style="display: none;">
+            <h4>🔧 Debug 資訊</h4>
+            <div id="debug-content"></div>
+        </div>
     </div>
 
     <!-- BONUS GAME 模態框 -->
     <div id="bonus-modal" class="modal">
         <div class="modal-content">
-            <h2>🎉 BONUS GAME 🎉</h2>
-            <p>恭喜獲得 3 次免費轉盤機會！</p>
+            <div class="modal-header">
+                <h2>🎉 BONUS GAME 🎉</h2>
+                <p>恭喜獲得 3 次免費轉盤機會！</p>
+            </div>
             <div class="bonus-info">
-                <p>剩餘次數: <span id="bonus-spins">3</span></p>
-                <p>本輪獲得: <span id="bonus-win">0</span></p>
-                <p>總計獲得: <span id="bonus-total">0</span></p>
+                <div class="bonus-stat">
+                    <span class="stat-label">剩餘次數:</span>
+                    <span id="bonus-spins" class="stat-value">3</span>
+                </div>
+                <div class="bonus-stat">
+                    <span class="stat-label">本輪獲得:</span>
+                    <span id="bonus-win" class="stat-value">0</span>
+                </div>
+                <div class="bonus-stat">
+                    <span class="stat-label">總計獲得:</span>
+                    <span id="bonus-total" class="stat-value">0</span>
+                </div>
             </div>
-            <div class="bonus-reels">
-                <!-- BONUS 遊戲的轉輪會在 JavaScript 中動態生成 -->
+            <div class="bonus-progress">
+                <div class="progress-bar">
+                    <div id="bonus-progress-fill" class="progress-fill"></div>
+                </div>
             </div>
-            <button id="bonus-spin">開始旋轉</button>
+            <button id="bonus-spin" class="btn-bonus">🎰 自動進行中...</button>
         </div>
     </div>
+
+    <!-- 中獎動畫容器 -->
+    <div id="win-effects" class="win-effects"></div>
 
     <script src="script.js"></script>
 </body>
