@@ -92,6 +92,7 @@ class GameState {
     updateBalance(amount) {
         this.balance = Math.max(0, this.balance + amount);
         this.saveBalance();
+        console.log(`💰 餘額更新: ${amount >= 0 ? '+' : ''}${amount} = ${this.balance}`);
         return this.balance;
     }
     
@@ -223,6 +224,7 @@ class DOMManager {
         this.elements.reels.forEach(reel => {
             if (reel) {
                 reel.classList.add('spinning');
+                reel.classList.remove('stopping');
             }
         });
     }
@@ -319,6 +321,7 @@ class GameLogic {
     
     calculateWin(board) {
         console.log('💰 計算中獎結果...');
+        console.log('盤面:', board);
         
         let totalPayout = 0;
         let winningLines = [];
@@ -331,7 +334,7 @@ class GameLogic {
             const symbols = line.map(pos => board[pos]);
             const result = this.checkPayline(symbols);
             
-            console.log(`賠付線 ${lineIndex + 1}:`, symbols, `-> ${result.symbol} ×${result.count} = ${result.payout}`);
+            console.log(`賠付線 ${lineIndex + 1}:`, symbols, `-> ${result.symbol || '無'} ×${result.count} = ${result.payout}`);
             
             if (result.payout > 0) {
                 totalPayout += result.payout;
@@ -351,6 +354,8 @@ class GameLogic {
         });
         
         const finalWin = totalPayout * this.gameState.currentBet;
+        
+        console.log(`總賠付: ${totalPayout} × ${this.gameState.currentBet} = ${finalWin}`);
         
         return {
             totalWin: finalWin,
@@ -383,78 +388,105 @@ class GameLogic {
     }
     
     async spin() {
-        if (this.gameState.isSpinning) return false;
+        if (this.gameState.isSpinning) {
+            console.log('⚠️ 已在轉動中，忽略請求');
+            return false;
+        }
         
         console.log('🎰 開始轉動...');
+        console.log('轉動前狀態:', this.gameState.getStatus());
         
         // 檢查是否能下注
         if (this.gameState.freeSpins === 0 && !this.gameState.canAffordBet()) {
             this.dom.showMessage('💰 餘額不足！', 'lose');
+            console.log('❌ 餘額不足');
             return false;
         }
         
+        // 設置轉動狀態
         this.gameState.isSpinning = true;
         this.gameState.spinCount++;
         
-        // 扣除下注或免費次數
+        // 先扣除下注或免費次數
         if (this.gameState.freeSpins > 0) {
             this.gameState.freeSpins--;
+            console.log('🎁 使用免費轉動，剩餘:', this.gameState.freeSpins);
         } else {
             this.gameState.updateBalance(-this.gameState.currentBet);
+            console.log('💰 扣除下注金額:', this.gameState.currentBet);
         }
         
+        // 更新UI
         this.dom.updateDisplay(this.gameState);
         this.dom.updateButtons(this.gameState);
         this.dom.showSpinAnimation();
         this.dom.showMessage('🎰 轉動中...', 'info');
         
-        // 等待轉動動畫
-        await this.sleep(GAME_CONFIG.SPIN_DURATION);
-        
-        // 生成新盤面
-        const newBoard = this.gameState.generateRandomBoard();
-        this.gameState.currentBoard = newBoard;
-        
-        // 停止動畫並顯示結果
-        this.dom.hideSpinAnimation();
-        await this.sleep(1000);
-        
-        this.dom.renderBoard(newBoard);
-        
-        // 計算中獎
-        const winResult = this.calculateWin(newBoard);
-        this.gameState.lastWin = winResult.totalWin;
-        
-        if (winResult.totalWin > 0) {
-            this.gameState.updateBalance(winResult.totalWin);
-            this.gameState.totalWins += winResult.totalWin;
-            this.dom.highlightWinningSymbols(winResult.winningPositions);
-            this.dom.showWinEffect(winResult.totalWin);
+        try {
+            // 等待轉動動畫
+            await this.sleep(GAME_CONFIG.SPIN_DURATION);
+            
+            // 生成新盤面
+            const newBoard = this.gameState.generateRandomBoard();
+            this.gameState.currentBoard = newBoard;
+            
+            // 停止動畫
+            this.dom.hideSpinAnimation();
+            
+            // 等待停止動畫完成
+            await this.sleep(1200);
+            
+            // 顯示最終結果
+            this.dom.renderBoard(newBoard);
+            
+            // 計算中獎
+            const winResult = this.calculateWin(newBoard);
+            this.gameState.lastWin = winResult.totalWin;
+            
+            // 處理獎金
+            if (winResult.totalWin > 0) {
+                this.gameState.updateBalance(winResult.totalWin);
+                this.gameState.totalWins += winResult.totalWin;
+                this.dom.highlightWinningSymbols(winResult.winningPositions);
+                this.dom.showWinEffect(winResult.totalWin);
+                this.dom.showMessage(winResult.message, 'win');
+            } else {
+                this.dom.showMessage(winResult.message, 'lose');
+            }
+            
+            // 處理特殊功能
+            if (winResult.freeSpins > 0) {
+                this.gameState.freeSpins += winResult.freeSpins;
+                console.log('🎁 獲得免費轉動:', winResult.freeSpins);
+            }
+            
+            if (winResult.bonusGame) {
+                this.gameState.bonusGame = true;
+                console.log('⭐ 觸發Bonus Game');
+            }
+            
+            // 更新顯示
+            this.dom.updateDisplay(this.gameState);
+            
+            console.log('✅ 轉動完成');
+            console.log('轉動後狀態:', this.gameState.getStatus());
+            
+            return true;
+            
+        } catch (error) {
+            console.error('❌ 轉動過程發生錯誤:', error);
+            this.dom.showMessage('❌ 轉動失敗，請重試', 'lose');
+            return false;
+        } finally {
+            // 確保狀態重置
+            this.gameState.isSpinning = false;
+            this.dom.updateButtons(this.gameState);
+            
+            // 自動繼續免費轉盤
+            if (this.gameState.freeSpins > 0 && this.gameState.isAutoMode) {
+                setTimeout(() => this.spin(), 1500);
+            }
         }
-        
-        // 處理特殊功能
-        if (winResult.freeSpins > 0) {
-            this.gameState.freeSpins += winResult.freeSpins;
-        }
-        
-        if (winResult.bonusGame) {
-            this.gameState.bonusGame = true;
-            // Bonus Game 邏輯可以在這裡實現
-        }
-        
-        this.dom.showMessage(winResult.message, winResult.totalWin > 0 ? 'win' : 'lose');
-        this.dom.updateDisplay(this.gameState);
-        
-        this.gameState.isSpinning = false;
-        this.dom.updateButtons(this.gameState);
-        
-        // 自動繼續免費轉盤
-        if (this.gameState.freeSpins > 0 && this.gameState.isAutoMode) {
-            setTimeout(() => this.spin(), 1500);
-        }
-        
-        console.log('✅ 轉動完成');
-        return true;
     }
     
     sleep(ms) {
@@ -524,6 +556,7 @@ class EventManager {
                 if (newBet >= GAME_CONFIG.MIN_BET && newBet <= GAME_CONFIG.MAX_BET) {
                     gameState.currentBet = newBet;
                     this.dom.updateDisplay(gameState);
+                    console.log('💰 下注金額更新為:', newBet);
                 }
             });
         }
@@ -566,8 +599,13 @@ function initGame() {
             testWin: () => {
                 gameState.currentBoard = ['💎', '💎', '💎', '🍒', '🍋', '💎', '💎', '💎', '🍒', '🍋', '💎', '💎', '💎', '🍒', '🍋'];
                 domManager.renderBoard(gameState.currentBoard);
+                const result = gameLogic.calculateWin(gameState.currentBoard);
+                console.log('測試中獎結果:', result);
             },
-            addBalance: (amount) => gameState.updateBalance(amount)
+            addBalance: (amount) => {
+                gameState.updateBalance(amount);
+                domManager.updateDisplay(gameState);
+            }
         };
         
         console.log('✅ 遊戲初始化完成！');

@@ -152,20 +152,30 @@ body {
 
 /* ===== 轉動動畫 ===== */
 .reel.spinning .reel-content {
-    animation: spin 0.1s linear infinite;
+    animation: spin 0.15s linear infinite;
 }
 
 .reel.stopping .reel-content {
-    animation: stop-spin 0.5s ease-out forwards;
+    animation: spin-slow 0.3s ease-out, spin-stop 0.4s ease-out 0.3s forwards;
 }
 
 @keyframes spin {
     0% { transform: translateY(0); }
+    25% { transform: translateY(-25px); }
+    50% { transform: translateY(-50px); }
+    75% { transform: translateY(-75px); }
     100% { transform: translateY(-100px); }
 }
 
-@keyframes stop-spin {
-    0% { transform: translateY(-100px); }
+@keyframes spin-slow {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(-20px); }
+}
+
+@keyframes spin-stop {
+    0% { transform: translateY(-20px); }
+    30% { transform: translateY(-5px); }
+    60% { transform: translateY(-1px); }
     100% { transform: translateY(0); }
 }
 
