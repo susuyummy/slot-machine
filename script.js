@@ -107,14 +107,24 @@ function updateBalance(amount) {
 }
 
 // 開始 BONUS GAME
-function startBonusGame() {
-    isBonusGame = true;
-    bonusSpinsLeft = 3;
-    bonusTotalWin = 0;
-    bonusModal.style.display = 'block';
-    updateBonusDisplay();
-    // 自動開始 BONUS GAME
-    autoBonusSpin();
+async function startBonusGame() {
+    return new Promise(async (resolve) => {
+        isBonusGame = true;
+        bonusSpinsLeft = 3;
+        bonusTotalWin = 0;
+        bonusModal.style.display = 'block';
+        updateBonusDisplay();
+        
+        // 等待所有 BONUS 轉動完成
+        await autoBonusSpin();
+        
+        // BONUS GAME 結束後等待一下
+        await new Promise(r => setTimeout(r, 2000));
+        
+        // 結束 BONUS GAME
+        endBonusGame();
+        resolve();
+    });
 }
 
 // 更新 BONUS 顯示
@@ -140,9 +150,6 @@ async function autoBonusSpin() {
         console.error('Auto bonus spin error:', error);
     } finally {
         isAutoSpinning = false;
-        if (bonusSpinsLeft <= 0) {
-            setTimeout(endBonusGame, 2000);
-        }
     }
 }
 
@@ -175,11 +182,25 @@ function endBonusGame() {
     isAutoSpinning = false;
     bonusModal.style.display = 'none';
     showMessage(`BONUS GAME 結束！總共贏得 ${bonusTotalWin} 點！`, '#388e3c');
+    
+    // 重置轉動狀態
+    setTimeout(() => {
+        isSpinning = false;
+        spinButton.disabled = false;
+        autoButton.disabled = false;
+        betInput.disabled = false;
+        
+        reels.forEach(reel => {
+            const inner = reel.querySelector('.reel-inner');
+            inner.style.transition = 'none';
+            inner.style.transform = 'translateY(0)';
+        });
+    }, 300);
 }
 
 // 修改主要的 spin 函數
 async function spin() {
-    if (isSpinning) return;
+    if (isSpinning || isBonusGame) return;
     
     try {
         clearMessage();
@@ -231,7 +252,17 @@ async function spin() {
         if (result.bonus && !isBonusGame) {
             showBonusIcon();
             console.log('觸發 BONUS GAME');
-            setTimeout(startBonusGame, 1000);
+            isAutoMode = false; // 停止自動模式
+            autoButton.style.display = 'inline-block';
+            stopAutoButton.style.display = 'none';
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await startBonusGame();
+            if (isAutoMode) { // 如果之前是自動模式，重新啟動
+                isAutoMode = true;
+                autoButton.style.display = 'none';
+                stopAutoButton.style.display = 'inline-block';
+                autoSpin();
+            }
         }
         
         if (result.free) {
@@ -249,18 +280,20 @@ async function spin() {
         console.error('發生錯誤：', error);
         showMessage('發生錯誤，請重新整理頁面後再試', '#d32f2f');
     } finally {
-        setTimeout(() => {
-            isSpinning = false;
-            spinButton.disabled = false;
-            autoButton.disabled = false;
-            betInput.disabled = false;
-            
-            reels.forEach(reel => {
-                const inner = reel.querySelector('.reel-inner');
-                inner.style.transition = 'none';
-                inner.style.transform = 'translateY(0)';
-            });
-        }, 300);
+        if (!isBonusGame) { // 只有在不是 BONUS GAME 時才重置狀態
+            setTimeout(() => {
+                isSpinning = false;
+                spinButton.disabled = false;
+                autoButton.disabled = false;
+                betInput.disabled = false;
+                
+                reels.forEach(reel => {
+                    const inner = reel.querySelector('.reel-inner');
+                    inner.style.transition = 'none';
+                    inner.style.transform = 'translateY(0)';
+                });
+            }, 300);
+        }
     }
 }
 
