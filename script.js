@@ -14,27 +14,27 @@ const CONFIG = {
 const SYMBOLS = {
     files: [
         '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg',
-        '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg',
         'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg',
         'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg',
         'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg',
-        'IMG_1538.JPG'
+        'IMG_1538.JPG',
+        '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg'
     ],
     types: [
         'diamond',  // 鑽石
-        'star',     // 星星
         'bell',     // 鈴鐺
         'grape',    // 葡萄
         'lemon',    // 檸檬
-        'cherry'    // 櫻桃
+        'cherry',   // 櫻桃
+        'orange'    // 橘子
     ],
     names: [
         '💎 鑽石',
-        '⭐ 星星',
         '🔔 鈴鐺',
         '🍇 葡萄',
         '🍋 檸檬',
-        '🍒 櫻桃'
+        '🍒 櫻桃',
+        '🍊 橘子'
     ]
 };
 
@@ -485,35 +485,40 @@ class GameSystem {
     }
     
     static async handleResult(result, wasFreeSpin = false) {
-        // 顯示中獎
-        if (result.winAmount > 0) {
-            RenderSystem.showWinLines(result.winLines);
-            GameUtils.updateBalance(result.winAmount);
-            GameUtils.showMessage(result.message + ` 🎊 贏得 ${result.winAmount} 點！`, '#27ae60');
-            RenderSystem.createWinEffect(result.winAmount);
-        } else {
-            GameUtils.showMessage('😔 沒有中獎，再試一次吧！', '#e74c3c');
-        }
-        
-        // 處理免費轉盤
-        if (result.free) {
-            gameState.freeSpin = true;
-            GameUtils.showMessage('🎁 免費轉盤啟動！', '#3498db');
+        try {
+            // 顯示中獎
+            if (result.winAmount > 0) {
+                RenderSystem.showWinLines(result.winLines);
+                GameUtils.updateBalance(result.winAmount);
+                GameUtils.showMessage(result.message + ` 🎊 贏得 ${result.winAmount} 點！`, '#27ae60');
+                RenderSystem.createWinEffect(result.winAmount);
+            } else {
+                GameUtils.showMessage('😔 沒有中獎，再試一次吧！', '#e74c3c');
+            }
             
-            await GameUtils.sleep(1500);
+            // 處理免費轉盤
+            if (result.free) {
+                gameState.freeSpin = true;
+                GameUtils.showMessage('🎁 免費轉盤啟動！', '#3498db');
+                
+                await GameUtils.sleep(1500);
+                
+                // 自動執行免費轉盤
+                setTimeout(() => {
+                    this.spin();
+                }, 500);
+                return; // 免費轉盤會自動執行，不需要重置狀態
+            }
             
-            // 自動執行免費轉盤
-            setTimeout(() => {
-                this.spin();
-            }, 500);
-            return; // 免費轉盤會自動執行，不需要重置狀態
-        }
-        
-        // 如果是自動模式且不是免費轉盤，繼續自動轉動
-        if (gameState.isAutoMode && !wasFreeSpin && !result.free) {
-            setTimeout(() => {
-                this.continueAutoMode();
-            }, 1000);
+            // 如果是自動模式且不是免費轉盤，繼續自動轉動
+            if (gameState.isAutoMode && !wasFreeSpin && !result.free) {
+                setTimeout(() => {
+                    this.continueAutoMode();
+                }, 1000);
+            }
+        } catch (error) {
+            GameUtils.debugLog('HandleResult error:', error);
+            GameUtils.showMessage('❌ 處理結果時發生錯誤', '#e74c3c');
         }
     }
     
