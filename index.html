@@ -3,139 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>拉霸機遊戲</title>
+    <title>🎰 拉霸機遊戲</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>🎰 拉霸機遊戲 🎰</h1>
-        <div class="slot-machine">
-            <div class="reels-container">
-                <div class="win-lines">
-                    <div class="win-line top" data-line="0"></div>
-                    <div class="win-line middle" data-line="1"></div>
-                    <div class="win-line bottom" data-line="2"></div>
-                    <div class="win-line diagonal1" data-line="3"></div>
-                    <div class="win-line diagonal2" data-line="4"></div>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>🎰 拉霸機遊戲</h1>
+            <div class="balance-display">
+                💰 餘額: <span id="balance">1000</span> 點
+            </div>
+        </header>
+
+        <main class="game-main">
+            <!-- 拉霸機主體 -->
+            <div class="slot-machine">
+                <div class="machine-frame">
+                    <!-- 中獎線 -->
+                    <div class="paylines">
+                        <div class="win-line line-1"></div>
+                        <div class="win-line line-2"></div>
+                        <div class="win-line line-3"></div>
+                        <div class="win-line line-4"></div>
+                        <div class="win-line line-5"></div>
+                    </div>
+                    
+                    <!-- 轉輪區域 -->
+                    <div class="reels-container">
+                        <div class="reel" id="reel1">
+                            <div class="reel-inner"></div>
+                        </div>
+                        <div class="reel" id="reel2">
+                            <div class="reel-inner"></div>
+                        </div>
+                        <div class="reel" id="reel3">
+                            <div class="reel-inner"></div>
+                        </div>
+                        <div class="reel" id="reel4">
+                            <div class="reel-inner"></div>
+                        </div>
+                        <div class="reel" id="reel5">
+                            <div class="reel-inner"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="reels-group">
-                    <div class="reel" id="reel1"><div class="reel-inner"></div></div>
-                    <div class="reel" id="reel2"><div class="reel-inner"></div></div>
-                    <div class="reel" id="reel3"><div class="reel-inner"></div></div>
-                    <div class="reel" id="reel4"><div class="reel-inner"></div></div>
-                    <div class="reel" id="reel5"><div class="reel-inner"></div></div>
+                
+                <!-- 拉桿 -->
+                <div class="lever-container">
+                    <div class="lever" id="lever">
+                        <div class="lever-handle"></div>
+                    </div>
                 </div>
             </div>
-            <div class="lever-area">
-                <div class="lever" id="lever">
-                    <div class="lever-knob"></div>
-                </div>
-            </div>
-            <div class="controls">
-                <button id="spin-button" class="btn-primary">🎲 開始遊戲</button>
-                <button id="auto-button" class="btn-auto">🔄 自動模式</button>
-                <button id="stop-auto" class="btn-stop" style="display: none;">⏹️ 停止自動</button>
-            </div>
-        </div>
-        
-        <div class="game-info">
-            <div class="score-panel">
-                <h3>💰 遊戲資訊</h3>
-                <div class="balance-display">
-                    <p>餘額: <span id="balance">1000</span> 💎</p>
-                </div>
-                <div class="bet-controls">
+
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <!-- 下注控制 -->
+                <div class="bet-section">
                     <label for="bet">下注金額:</label>
-                    <div class="bet-input-group">
+                    <div class="bet-controls">
                         <button id="bet-minus" class="bet-btn">-</button>
-                        <input type="number" id="bet" value="10" min="10" max="100" step="10">
+                        <input type="number" id="bet" min="10" max="100" step="10" value="10">
                         <button id="bet-plus" class="bet-btn">+</button>
                     </div>
-                    <div class="bet-presets">
-                        <button class="preset-btn" data-bet="10">10</button>
-                        <button class="preset-btn" data-bet="25">25</button>
+                    <div class="preset-bets">
+                        <button class="preset-btn active" data-bet="10">10</button>
+                        <button class="preset-btn" data-bet="20">20</button>
                         <button class="preset-btn" data-bet="50">50</button>
                         <button class="preset-btn" data-bet="100">100</button>
                     </div>
                 </div>
-            </div>
-            
-            <div class="paytable">
-                <h3>🏆 獎金表</h3>
-                <div class="symbol-info">
-                    <div class="symbol-row">
-                        <img src="71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg" alt="鑽石" class="symbol-img">
-                        <div class="symbol-pays">
-                            <span class="symbol-name">💎 鑽石</span>
-                            <div class="pays">5個:×1000 | 4個:×100 | 3個:×20</div>
-                        </div>
-                    </div>
-                    <div class="symbol-row">
-                        <img src="88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg" alt="星星" class="symbol-img">
-                        <div class="symbol-pays">
-                            <span class="symbol-name">⭐ 星星</span>
-                            <div class="pays special">3個觸發 BONUS GAME</div>
-                        </div>
-                    </div>
-                    <div class="symbol-row">
-                        <img src="A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg" alt="鈴鐺" class="symbol-img">
-                        <div class="symbol-pays">
-                            <span class="symbol-name">🔔 鈴鐺</span>
-                            <div class="pays special">3個觸發免費轉盤</div>
-                        </div>
-                    </div>
-                    <div class="symbol-row">
-                        <img src="C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg" alt="葡萄" class="symbol-img">
-                        <div class="symbol-pays">
-                            <span class="symbol-name">🍇 其他</span>
-                            <div class="pays">5個:×500 | 4個:×50 | 3個:×5</div>
-                        </div>
-                    </div>
+
+                <!-- 遊戲按鈕 -->
+                <div class="game-buttons">
+                    <button id="spin-button" class="main-button spin-btn">
+                        🎰 轉動
+                    </button>
+                    <button id="auto-button" class="main-button auto-btn">
+                        🔄 自動
+                    </button>
+                    <button id="stop-auto" class="main-button stop-btn" style="display: none;">
+                        ⏹️ 停止
+                    </button>
                 </div>
             </div>
-        </div>
-        
-        <div id="message" class="message"></div>
-        
-        <!-- Debug 面板 -->
-        <div id="debug-panel" class="debug-panel" style="display: none;">
-            <h4>🔧 Debug 資訊</h4>
-            <div id="debug-content"></div>
-        </div>
+
+            <!-- 訊息顯示 -->
+            <div id="message" class="message-display"></div>
+        </main>
+
+        <!-- 獎金表 -->
+        <aside class="paytable">
+            <h3>🏆 獎金表</h3>
+            <div class="paytable-content">
+                <div class="payout-row">
+                    <span class="symbol">💎 鑽石</span>
+                    <span class="payout">3個: ×20 | 4個: ×100 | 5個: ×1000</span>
+                </div>
+                <div class="payout-row">
+                    <span class="symbol">其他符號</span>
+                    <span class="payout">3個: ×5 | 4個: ×50 | 5個: ×500</span>
+                </div>
+                <div class="special-row">
+                    <span class="symbol">🔔 3個鈴鐺</span>
+                    <span class="feature">免費轉盤</span>
+                </div>
+            </div>
+        </aside>
     </div>
 
-    <!-- BONUS GAME 模態框 -->
-    <div id="bonus-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>🎉 BONUS GAME 🎉</h2>
-                <p>恭喜獲得 3 次免費轉盤機會！</p>
-            </div>
-            <div class="bonus-info">
-                <div class="bonus-stat">
-                    <span class="stat-label">剩餘次數:</span>
-                    <span id="bonus-spins" class="stat-value">3</span>
-                </div>
-                <div class="bonus-stat">
-                    <span class="stat-label">本輪獲得:</span>
-                    <span id="bonus-win" class="stat-value">0</span>
-                </div>
-                <div class="bonus-stat">
-                    <span class="stat-label">總計獲得:</span>
-                    <span id="bonus-total" class="stat-value">0</span>
-                </div>
-            </div>
-            <div class="bonus-progress">
-                <div class="progress-bar">
-                    <div id="bonus-progress-fill" class="progress-fill"></div>
-                </div>
-            </div>
-            <button id="bonus-spin" class="btn-bonus">🎰 自動進行中...</button>
-        </div>
-    </div>
-
-    <!-- 中獎動畫容器 -->
+    <!-- 特效容器 -->
     <div id="win-effects" class="win-effects"></div>
+
+    <!-- Debug 面板 -->
+    <div id="debug-panel" class="debug-panel" style="display: none;">
+        <h4>Debug 資訊</h4>
+        <div id="debug-content"></div>
+    </div>
 
     <script src="script.js"></script>
 </body>

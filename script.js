@@ -59,12 +59,8 @@ let gameState = {
     currentBet: CONFIG.MIN_BET,
     isSpinning: false,
     isAutoMode: false,
-    isBonusGame: false,
-    isAutoSpinning: false,
     freeSpin: false,
-    lastBoard: null,
-    bonusSpinsLeft: 0,
-    bonusTotalWin: 0
+    lastBoard: null
 };
 
 // ===== DOM 元素 =====
@@ -91,14 +87,6 @@ const elements = {
     
     // 中獎線
     winLines: document.querySelectorAll('.win-line'),
-    
-    // BONUS GAME
-    bonusModal: document.getElementById('bonus-modal'),
-    bonusSpinsDisplay: document.getElementById('bonus-spins'),
-    bonusWinDisplay: document.getElementById('bonus-win'),
-    bonusTotalDisplay: document.getElementById('bonus-total'),
-    bonusSpinButton: document.getElementById('bonus-spin'),
-    bonusProgressFill: document.getElementById('bonus-progress-fill'),
     
     // 特效
     winEffects: document.getElementById('win-effects'),
@@ -367,7 +355,6 @@ class PayoutSystem {
         let result = {
             winAmount: 0,
             message: '',
-            bonus: false,
             free: false,
             winLines: []
         };
@@ -382,14 +369,10 @@ class PayoutSystem {
             }
         });
 
-        // 檢查特殊符號
+        // 檢查特殊符號（只檢查免費轉盤）
         const specialResult = this.checkSpecialSymbols(board);
-        result.bonus = specialResult.bonus;
         result.free = specialResult.free;
         
-        if (specialResult.bonus) {
-            result.message += ' 🎉 觸發 BONUS GAME!';
-        }
         if (specialResult.free) {
             result.message += ' 🎁 獲得免費轉盤!';
         }
@@ -440,132 +423,26 @@ class PayoutSystem {
     }
     
     static checkSpecialSymbols(board) {
-        let starCount = 0;
         let bellCount = 0;
         
-        // 計算特殊符號數量
+        // 計算特殊符號數量（只計算鈴鐺）
         for (let col = 0; col < CONFIG.REEL_COUNT; col++) {
             for (let row = 0; row < CONFIG.ROW_COUNT; row++) {
                 const symbolType = SYMBOLS.types[board[col][row]];
-                if (symbolType === 'star') starCount++;
                 if (symbolType === 'bell') bellCount++;
             }
         }
         
         return {
-            bonus: starCount >= 3,
             free: bellCount >= 3
         };
-    }
-}
-
-// ===== BONUS GAME 系統 =====
-class BonusGameSystem {
-    static async start() {
-        GameUtils.debugLog('Starting BONUS GAME');
-        
-        return new Promise(async (resolve) => {
-            gameState.isBonusGame = true;
-            gameState.bonusSpinsLeft = 3;
-            gameState.bonusTotalWin = 0;
-            
-            // 顯示模態框
-            elements.bonusModal.style.display = 'block';
-            this.updateDisplay();
-            
-            // 自動執行所有 BONUS 轉動
-            await this.autoSpin();
-            
-            // 等待後結束
-            await GameUtils.sleep(2000);
-            this.end();
-            resolve();
-        });
-    }
-    
-    static async autoSpin() {
-        gameState.isAutoSpinning = true;
-        
-        try {
-            while (gameState.bonusSpinsLeft > 0) {
-                await this.singleSpin();
-                this.updateProgress();
-                
-                if (gameState.bonusSpinsLeft > 0) {
-                    await GameUtils.sleep(1000);
-                }
-            }
-        } catch (error) {
-            GameUtils.debugLog('BONUS auto spin error:', error);
-        } finally {
-            gameState.isAutoSpinning = false;
-        }
-    }
-    
-    static async singleSpin() {
-        gameState.bonusSpinsLeft--;
-        this.updateDisplay();
-        
-        const board = await AnimationSystem.spinAllReels(2000);
-        const result = PayoutSystem.calculateWin(board, gameState.currentBet);
-        
-        if (result.winAmount > 0) {
-            RenderSystem.showWinLines(result.winLines);
-            gameState.bonusTotalWin += result.winAmount;
-            elements.bonusWinDisplay.textContent = result.winAmount;
-            elements.bonusTotalDisplay.textContent = gameState.bonusTotalWin;
-            GameUtils.updateBalance(result.winAmount);
-        }
-    }
-    
-    static updateDisplay() {
-        elements.bonusSpinsDisplay.textContent = gameState.bonusSpinsLeft;
-        elements.bonusWinDisplay.textContent = '0';
-        elements.bonusTotalDisplay.textContent = gameState.bonusTotalWin;
-    }
-    
-    static updateProgress() {
-        const progress = ((3 - gameState.bonusSpinsLeft) / 3) * 100;
-        elements.bonusProgressFill.style.width = progress + '%';
-    }
-    
-    static end() {
-        gameState.isBonusGame = false;
-        gameState.isAutoSpinning = false;
-        elements.bonusModal.style.display = 'none';
-        
-        GameUtils.showMessage(`🎉 BONUS GAME 結束！總共贏得 ${gameState.bonusTotalWin} 點！`, '#27ae60');
-        
-        // 重置遊戲狀態並確保盤面正確顯示
-        this.resetGameState();
-    }
-    
-    static resetGameState() {
-        setTimeout(() => {
-            gameState.isSpinning = false;
-            elements.spinButton.disabled = false;
-            elements.autoButton.disabled = false;
-            elements.betInput.disabled = false;
-            
-            // 確保顯示最後的盤面
-            if (gameState.lastBoard) {
-                RenderSystem.renderReels(gameState.lastBoard);
-            }
-            
-            // 如果之前是自動模式，在短暫延遲後繼續
-            if (gameState.isAutoMode) {
-                setTimeout(() => {
-                    GameSystem.continueAutoMode();
-                }, 1000);
-            }
-        }, 300);
     }
 }
 
 // ===== 主遊戲系統 =====
 class GameSystem {
     static async spin() {
-        if (gameState.isSpinning || gameState.isBonusGame) return;
+        if (gameState.isSpinning) return;
         
         try {
             GameUtils.clearMessage();
@@ -603,9 +480,7 @@ class GameSystem {
             GameUtils.debugLog('Spin error:', error);
             GameUtils.showMessage('❌ 發生錯誤，請重試', '#e74c3c');
         } finally {
-            if (!gameState.isBonusGame) {
-                this.resetGameState();
-            }
+            this.resetGameState();
         }
     }
     
@@ -620,27 +495,6 @@ class GameSystem {
             GameUtils.showMessage('😔 沒有中獎，再試一次吧！', '#e74c3c');
         }
         
-        // 處理 BONUS GAME
-        if (result.bonus && !gameState.isBonusGame) {
-            this.showBonusIcon();
-            const wasAutoMode = gameState.isAutoMode;
-            gameState.isAutoMode = false;
-            this.updateAutoButtons();
-            
-            await GameUtils.sleep(1000);
-            await BonusGameSystem.start();
-            
-            // 如果之前是自動模式，重新啟動
-            if (wasAutoMode) {
-                gameState.isAutoMode = true;
-                this.updateAutoButtons();
-                setTimeout(() => {
-                    this.continueAutoMode();
-                }, 500);
-            }
-            return; // BONUS GAME 結束後不繼續處理免費轉盤
-        }
-        
         // 處理免費轉盤
         if (result.free) {
             gameState.freeSpin = true;
@@ -648,22 +502,15 @@ class GameSystem {
             
             await GameUtils.sleep(1500);
             
-            // 如果是自動模式，繼續自動轉動
-            if (gameState.isAutoMode) {
-                setTimeout(() => {
-                    this.spin();
-                }, 500);
-            } else {
-                // 手動模式下自動執行免費轉盤
-                setTimeout(() => {
-                    this.spin();
-                }, 500);
-            }
+            // 自動執行免費轉盤
+            setTimeout(() => {
+                this.spin();
+            }, 500);
             return; // 免費轉盤會自動執行，不需要重置狀態
         }
         
         // 如果是自動模式且不是免費轉盤，繼續自動轉動
-        if (gameState.isAutoMode && !wasFreeSpin && !result.bonus && !result.free) {
+        if (gameState.isAutoMode && !wasFreeSpin && !result.free) {
             setTimeout(() => {
                 this.continueAutoMode();
             }, 1000);
@@ -671,7 +518,7 @@ class GameSystem {
     }
     
     static continueAutoMode() {
-        if (gameState.isAutoMode && gameState.balance >= gameState.currentBet && !gameState.isBonusGame) {
+        if (gameState.isAutoMode && gameState.balance >= gameState.currentBet) {
             this.spin();
         } else if (gameState.balance < gameState.currentBet) {
             this.stopAutoMode();
@@ -679,32 +526,12 @@ class GameSystem {
         }
     }
     
-    static showBonusIcon() {
-        const icon = document.createElement('div');
-        icon.style.cssText = `
-            position: fixed;
-            left: 50%;
-            top: 30%;
-            transform: translate(-50%, -50%);
-            font-size: 5rem;
-            z-index: 9999;
-            pointer-events: none;
-            animation: bonus-pop 1.2s cubic-bezier(0.23,1,0.32,1);
-        `;
-        icon.innerHTML = '⭐ BONUS!';
-        document.body.appendChild(icon);
-        
-        setTimeout(() => {
-            icon.remove();
-        }, 1200);
-    }
-    
     static async startAutoMode() {
         gameState.isAutoMode = true;
         this.updateAutoButtons();
         
         // 開始第一次轉動
-        if (!gameState.isSpinning && !gameState.isBonusGame) {
+        if (!gameState.isSpinning) {
             this.spin();
         }
     }
@@ -823,11 +650,6 @@ class EventHandler {
             });
         });
         
-        // BONUS GAME 按鈕
-        elements.bonusSpinButton.addEventListener('click', () => {
-            // 這個按鈕在自動模式下不需要手動點擊
-        });
-        
         // 鍵盤快捷鍵
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' && !gameState.isSpinning) {
@@ -860,24 +682,8 @@ class GameInitializer {
         // 初始化事件
         EventHandler.init();
         
-        // 添加 BONUS 動畫樣式
-        this.addBonusAnimation();
-        
         GameUtils.debugLog('Game initialized successfully');
         GameUtils.showMessage('🎰 歡迎來到拉霸機遊戲！按空白鍵或點擊按鈕開始遊戲', '#3498db');
-    }
-    
-    static addBonusAnimation() {
-        const style = document.createElement('style');
-        style.innerHTML = `
-            @keyframes bonus-pop {
-                0% { transform: translate(-50%,-50%) scale(0.5); opacity: 0; }
-                40% { transform: translate(-50%,-50%) scale(1.2); opacity: 1; }
-                70% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
-                100% { transform: translate(-50%,-50%) scale(0.7); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
     }
 }
 
@@ -895,6 +701,5 @@ window.gameDebug = {
         GameUtils.updateBalanceDisplay();
         GameUtils.saveBalance();
     },
-    triggerBonus: () => BonusGameSystem.start(),
     getBoard: () => gameState.lastBoard
 }; 
