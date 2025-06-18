@@ -550,6 +550,9 @@ class DOMManager {
                     cylinderReel.spin();
                 }
             });
+        } else {
+            // 使用傳統的滾動動畫
+            this.startTraditionalSpinAnimation();
         }
         
         // 保持原有的CSS類別以便其他邏輯使用
@@ -559,6 +562,42 @@ class DOMManager {
                 reel.classList.remove('stopping');
             }
         });
+    }
+    
+    startTraditionalSpinAnimation() {
+        this.elements.reels.forEach((reel, reelIndex) => {
+            if (!reel) return;
+            
+            const content = reel.querySelector('.reel-content');
+            if (!content) return;
+            
+            // 創建滾動效果
+            let spinInterval = setInterval(() => {
+                // 生成隨機符號進行滾動
+                const symbols = content.querySelectorAll('.symbol');
+                symbols.forEach((symbol, symbolIndex) => {
+                    const randomSymbol = this.getRandomSymbolForAnimation();
+                    
+                    if (randomSymbol.includes('.jpg') || randomSymbol.includes('.jpeg') || randomSymbol.includes('.JPG')) {
+                        symbol.innerHTML = `<img src="${randomSymbol}" alt="轉動中" style="width: 100%; height: 100%; object-fit: cover; border-radius: 5px;">`;
+                    } else {
+                        symbol.innerHTML = randomSymbol;
+                        symbol.style.fontSize = '2.5rem';
+                        symbol.style.display = 'flex';
+                        symbol.style.alignItems = 'center';
+                        symbol.style.justifyContent = 'center';
+                    }
+                });
+            }, 50); // 每50ms更新一次
+            
+            // 儲存interval以便後續停止
+            reel.spinInterval = spinInterval;
+        });
+    }
+    
+    getRandomSymbolForAnimation() {
+        const symbols = GAME_CONFIG.SYMBOLS;
+        return symbols[Math.floor(Math.random() * symbols.length)];
     }
     
     hideSpinAnimation(finalBoard) {
@@ -580,9 +619,12 @@ class DOMManager {
                 if (cylinderReel) {
                     setTimeout(() => {
                         cylinderReel.stop(reelSymbols[index]);
-                    }, index * GAME_CONFIG.ANIMATION_CONFIG.STOP_DELAY);
+                    }, index * 200);
                 }
             });
+        } else {
+            // 停止傳統動畫
+            this.stopTraditionalSpinAnimation(finalBoard);
         }
         
         // 保持原有的CSS類別管理
@@ -594,8 +636,74 @@ class DOMManager {
                     
                     setTimeout(() => {
                         reel.classList.remove('stopping');
-                    }, 1000); // 使用固定時間而不是配置
-                }, index * 200); // 使用固定延遲
+                    }, 1000);
+                }, index * 200);
+            }
+        });
+    }
+    
+    stopTraditionalSpinAnimation(finalBoard) {
+        this.elements.reels.forEach((reel, reelIndex) => {
+            if (!reel) return;
+            
+            // 停止滾動動畫
+            if (reel.spinInterval) {
+                setTimeout(() => {
+                    clearInterval(reel.spinInterval);
+                    reel.spinInterval = null;
+                    
+                    // 顯示最終結果
+                    const content = reel.querySelector('.reel-content');
+                    if (content) {
+                        content.innerHTML = '';
+                        
+                        // 渲染最終符號
+                        for (let row = 0; row < GAME_CONFIG.ROWS; row++) {
+                            const symbolIndex = reelIndex * GAME_CONFIG.ROWS + row;
+                            const symbolFile = finalBoard[symbolIndex];
+                            
+                            const symbolElement = document.createElement('div');
+                            symbolElement.className = 'symbol';
+                            symbolElement.dataset.index = symbolIndex;
+                            
+                            if (symbolFile && (symbolFile.includes('.jpg') || symbolFile.includes('.jpeg') || symbolFile.includes('.png') || symbolFile.includes('.JPG'))) {
+                                const img = document.createElement('img');
+                                img.src = symbolFile;
+                                img.alt = this.getSymbolName(symbolFile);
+                                img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 5px;';
+                                
+                                img.onerror = () => {
+                                    const symbolEmoji = this.getSymbolEmoji(symbolFile);
+                                    symbolElement.innerHTML = '';
+                                    symbolElement.textContent = symbolEmoji;
+                                    symbolElement.style.fontSize = '2.5rem';
+                                    symbolElement.style.color = '#fff';
+                                    symbolElement.style.textAlign = 'center';
+                                    symbolElement.style.display = 'flex';
+                                    symbolElement.style.alignItems = 'center';
+                                    symbolElement.style.justifyContent = 'center';
+                                    symbolElement.style.background = 'linear-gradient(45deg, #666, #999)';
+                                    symbolElement.style.borderRadius = '5px';
+                                };
+                                
+                                symbolElement.appendChild(img);
+                            } else {
+                                const symbolEmoji = this.getSymbolEmoji(symbolFile) || '❓';
+                                symbolElement.textContent = symbolEmoji;
+                                symbolElement.style.fontSize = '2.5rem';
+                                symbolElement.style.color = '#fff';
+                                symbolElement.style.textAlign = 'center';
+                                symbolElement.style.display = 'flex';
+                                symbolElement.style.alignItems = 'center';
+                                symbolElement.style.justifyContent = 'center';
+                                symbolElement.style.background = 'linear-gradient(45deg, #666, #999)';
+                                symbolElement.style.borderRadius = '5px';
+                            }
+                            
+                            content.appendChild(symbolElement);
+                        }
+                    }
+                }, reelIndex * 200); // 依序停止每個轉輪
             }
         });
     }
@@ -855,9 +963,6 @@ class GameLogic {
             
             // 等待停止動畫完成
             await this.sleep(1200);
-            
-            // 顯示最終結果
-            this.dom.renderBoard(newBoard);
             
             // 計算中獎
             const winResult = this.calculateWin(newBoard);
