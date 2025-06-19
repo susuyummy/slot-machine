@@ -100,8 +100,6 @@ body {
     border-radius: 20px;
     backdrop-filter: blur(10px);
     border: 2px solid rgba(255,255,255,0.1);
-    perspective: 1200px; /* 3D透視效果 */
-    perspective-origin: center center;
 }
 
 .reel {
@@ -109,7 +107,7 @@ body {
     height: 300px;
     background: transparent;
     border-radius: 15px;
-    overflow: visible;
+    overflow: hidden;
     position: relative;
     transform-style: preserve-3d;
     transition: transform 0.3s ease;
@@ -130,9 +128,6 @@ body {
     flex-direction: column;
     height: 100%;
     transition: transform 0.3s ease;
-    transform-style: preserve-3d;
-    --rotation-angle: 0deg;
-    --rollback-angle: 0deg;
 }
 
 .symbol {
@@ -145,7 +140,11 @@ body {
     background: linear-gradient(135deg, #3a4a5c, #2c3e50);
     transition: all 0.3s ease;
     flex-shrink: 0;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
 }
+
+
 
 .symbol:hover {
     background: linear-gradient(135deg, #4a5a6c, #3c4e60);
@@ -154,31 +153,90 @@ body {
 
 .symbol.winning {
     background: linear-gradient(135deg, #ffd700, #ffed4a) !important;
-    color: #000;
-    animation: winning-glow 1s infinite alternate, winning-pulse 0.8s ease-in-out infinite;
-    box-shadow: 0 0 20px #ffd700;
-    z-index: 10;
-    transform: scale(1.1);
-    border: 2px solid #fff;
+    color: #000 !important;
+    animation: winning-glow 0.8s infinite alternate, winning-pulse 0.6s ease-in-out infinite;
+    box-shadow: 0 0 30px #ffd700, 0 0 50px rgba(255, 215, 0, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.3);
+    z-index: 100;
+    transform: scale(1.15);
+    border: 4px solid #fff;
+    border-radius: 12px !important;
+    position: relative;
+    overflow: visible;
+}
+
+.symbol.winning::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    background: linear-gradient(45deg, #ffd700, #ffed4a, #ffd700, #ffed4a);
+    border-radius: 16px;
+    z-index: -1;
+    animation: winning-border-glow 1s linear infinite;
+}
+
+.symbol.winning::after {
+    content: '💰';
+    position: absolute;
+    top: -15px;
+    right: -15px;
+    font-size: 1.5rem;
+    animation: winning-coin-bounce 0.8s ease-in-out infinite;
+    z-index: 101;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
 @keyframes winning-glow {
     0% { 
-        box-shadow: 0 0 20px #ffd700; 
-        filter: brightness(1);
+        box-shadow: 0 0 30px #ffd700, 0 0 50px rgba(255, 215, 0, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.3);
+        filter: brightness(1.1);
     }
     100% { 
-        box-shadow: 0 0 30px #ffd700, 0 0 40px #ffd700, 0 0 60px #ffd700; 
-        filter: brightness(1.2);
+        box-shadow: 0 0 50px #ffd700, 0 0 80px rgba(255, 215, 0, 1), 0 0 100px rgba(255, 215, 0, 0.6), inset 0 0 30px rgba(255, 255, 255, 0.5);
+        filter: brightness(1.3);
     }
 }
 
 @keyframes winning-pulse {
     0%, 100% { 
-        transform: scale(1.1) rotateY(0deg); 
+        transform: scale(1.15) rotateY(0deg); 
     }
     50% { 
-        transform: scale(1.15) rotateY(5deg); 
+        transform: scale(1.2) rotateY(3deg); 
+    }
+}
+
+@keyframes winning-border-glow {
+    0% { 
+        background: linear-gradient(45deg, #ffd700, #ffed4a, #ffd700, #ffed4a);
+        opacity: 0.8;
+    }
+    25% { 
+        background: linear-gradient(135deg, #ffed4a, #ffd700, #ffed4a, #ffd700);
+        opacity: 1;
+    }
+    50% { 
+        background: linear-gradient(225deg, #ffd700, #ffed4a, #ffd700, #ffed4a);
+        opacity: 0.8;
+    }
+    75% { 
+        background: linear-gradient(315deg, #ffed4a, #ffd700, #ffed4a, #ffd700);
+        opacity: 1;
+    }
+    100% { 
+        background: linear-gradient(45deg, #ffd700, #ffed4a, #ffd700, #ffed4a);
+        opacity: 0.8;
+    }
+}
+
+@keyframes winning-coin-bounce {
+    0%, 100% { 
+        transform: translateY(0) scale(1);
+    }
+    50% { 
+        transform: translateY(-8px) scale(1.2);
     }
 }
 
@@ -187,9 +245,29 @@ body {
     transform-origin: center center;
 }
 
-/* 保持一些基礎動畫用於狀態指示 */
+/* 轉輪動畫效果 */
 .reel.spinning {
     animation: reel-glow 0.5s ease-in-out infinite alternate;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+    border: 2px solid rgba(255, 215, 0, 0.8);
+    overflow: hidden;
+}
+
+.reel.spinning .reel-content {
+    overflow: hidden;
+}
+
+/* 停止時的視覺效果 */
+.reel.stopping {
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+
+
+.spinning-symbol {
+    animation: symbol-blur 0.1s linear infinite;
 }
 
 @keyframes reel-glow {
@@ -198,6 +276,39 @@ body {
     }
     100% { 
         filter: brightness(1.2);
+    }
+}
+
+/* 無縫循環滾動動畫 */
+@keyframes seamless-spin {
+    0% { 
+        transform: translateY(0);
+    }
+    100% { 
+        transform: translateY(-3000px); /* 向上滾動足夠距離以循環 */
+    }
+}
+
+@keyframes symbol-blur {
+    0% { 
+        filter: blur(0px) brightness(1);
+        transform: scale(1);
+    }
+    25% { 
+        filter: blur(2px) brightness(1.2);
+        transform: scale(0.98);
+    }
+    50% { 
+        filter: blur(3px) brightness(1.4);
+        transform: scale(0.95);
+    }
+    75% { 
+        filter: blur(2px) brightness(1.2);
+        transform: scale(0.98);
+    }
+    100% { 
+        filter: blur(0px) brightness(1);
+        transform: scale(1);
     }
 }
 
