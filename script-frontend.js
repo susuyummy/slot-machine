@@ -525,48 +525,82 @@ class DOMManager {
     }
     
     createSimpleSpinAnimation(content) {
-        // 創建足夠多的隨機符號用於無縫滾動效果
+        console.log('🎯 創建簡單轉動動畫');
+        
+        // 使用默認符號列表
+        const symbols = [
+            'IMG_1538.JPG',
+            'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg',
+            'IMG_1385.JPG',
+            'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg',
+            '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg',
+            '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg',
+            'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg'
+        ];
+        
+        // 清空內容
+        content.innerHTML = '';
+        
+        // 創建更多動畫符號，確保有足夠的滾動內容
         const spinSymbols = [];
-        // 需要更多符號來填滿滾動區域，避免出現空白
-        for (let i = 0; i < 30; i++) {
-            const symbolIndex = Math.floor(Math.random() * gameConfig.SYMBOLS.length);
-            const symbolFile = gameConfig.SYMBOLS[symbolIndex];
+        for (let i = 0; i < 25; i++) {  // 增加到25個符號
+            const symbolFile = symbols[Math.floor(Math.random() * symbols.length)];
+            const symbolDiv = document.createElement('div');
+            symbolDiv.className = 'symbol spinning-symbol';
+            symbolDiv.style.cssText = `
+                width: 100%;
+                height: 80px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid rgba(255,255,255,0.2);
+                margin: 2px 0;
+                background: rgba(0,0,0,0.3);
+                border-radius: 8px;
+            `;
             
-            const symbolElement = document.createElement('div');
-            symbolElement.className = 'symbol spinning-symbol';
-            
-            if (symbolFile && (symbolFile.includes('.jpg') || symbolFile.includes('.jpeg') || symbolFile.includes('.png') || symbolFile.includes('.JPG'))) {
+            if (symbolFile.includes('.jpg') || symbolFile.includes('.jpeg') || symbolFile.includes('.JPG')) {
                 const img = document.createElement('img');
                 img.src = symbolFile;
-                img.alt = this.getSymbolName(symbolFile);
-                img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: 8px;';
-                symbolElement.appendChild(img);
+                img.style.cssText = 'width: 90%; height: 90%; object-fit: cover; border-radius: 5px;';
+                symbolDiv.appendChild(img);
             } else {
-                symbolElement.textContent = this.getSymbolEmoji(symbolFile);
+                symbolDiv.textContent = this.getSymbolEmoji(symbolFile);
+                symbolDiv.style.fontSize = '2.5rem';
+                symbolDiv.style.color = '#fff';
             }
             
-            spinSymbols.push(symbolElement);
+            spinSymbols.push(symbolDiv);
         }
         
-        // 清空內容並添加滾動符號
-        content.innerHTML = '';
+        // 添加符號到容器
         spinSymbols.forEach(symbol => content.appendChild(symbol));
         
-        // 複製符號以創建循環效果
-        const duplicateSymbols = [...spinSymbols];
-        duplicateSymbols.forEach(symbol => {
-            const clone = symbol.cloneNode(true);
-            content.appendChild(clone);
-        });
+        // 複製符號創建無縫循環（複製兩次確保足夠長）
+        for (let i = 0; i < 2; i++) {
+            spinSymbols.forEach(symbol => {
+                const clone = symbol.cloneNode(true);
+                content.appendChild(clone);
+            });
+        }
         
-        // 設定容器樣式確保無縫滾動
-        content.style.display = 'flex';
-        content.style.flexDirection = 'column';
-        content.style.height = 'auto';
-        content.style.minHeight = '600px'; // 確保有足夠高度
+        // 設置動畫樣式 - 使用適中的速度讓轉動清晰可見
+        content.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            height: auto;
+            min-height: 600px;
+            animation: seamless-spin 0.3s linear infinite;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,215,0,0.5);
+            box-shadow: 0 0 20px rgba(255,215,0,0.3);
+        `;
         
-        // 添加滾動動畫
-        content.style.animation = 'seamless-spin 0.1s linear infinite';
+        // 添加視覺指示器
+        content.setAttribute('data-spinning', 'true');
+        
+        console.log('✅ 動畫已設置，符號數量:', content.children.length);
+        console.log('✅ 動畫樣式:', content.style.animation);
     }
     
     hideSpinAnimation(finalBoard) {
@@ -578,18 +612,23 @@ class DOMManager {
                     
                     const content = reel.querySelector('.reel-content');
                     if (content) {
+                        console.log(`🛑 停止轉輪 ${index + 1} 動畫`);
+                        
                         // 停止動畫
                         content.style.animation = '';
+                        content.removeAttribute('data-spinning');
                         
                         // 重置容器樣式
-                        content.style.display = 'flex';
-                        content.style.flexDirection = 'column';
-                        content.style.height = '100%';
-                        content.style.minHeight = 'auto';
-                        content.style.transform = '';
+                        content.style.cssText = `
+                            display: flex;
+                            flex-direction: column;
+                            height: 100%;
+                            background: transparent;
+                        `;
                         
                         // 渲染最終結果
                         this.renderFinalSymbols(content, finalBoard, index);
+                        console.log(`✅ 轉輪 ${index + 1} 已停止並顯示結果`);
                     }
                     
                     setTimeout(() => {
@@ -684,15 +723,29 @@ class DOMManager {
     }
     
     getSymbolName(symbolFile) {
-        if (!gameConfig) return '未知符號';
-        const index = gameConfig.SYMBOLS.indexOf(symbolFile);
-        return index >= 0 ? gameConfig.SYMBOL_NAMES[index] : '未知符號';
+        const symbolNames = {
+            'IMG_1538.JPG': '圖片1',
+            'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg': '圖片2',
+            'IMG_1385.JPG': '圖片7',
+            'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg': '圖片3',
+            '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg': '圖片5',
+            '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg': '圖片6',
+            'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg': '圖片4'
+        };
+        return symbolNames[symbolFile] || '未知符號';
     }
     
     getSymbolEmoji(symbolFile) {
-        if (!gameConfig) return '❓';
-        const index = gameConfig.SYMBOLS.indexOf(symbolFile);
-        return index >= 0 ? gameConfig.SYMBOL_EMOJIS[index] : '❓';
+        const symbolEmojis = {
+            'IMG_1538.JPG': '🎨',
+            'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg': '🖼️',
+            'IMG_1385.JPG': '🐰',
+            'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg': '🌟',
+            '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg': '💫',
+            '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg': '🎯',
+            'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg': '✨'
+        };
+        return symbolEmojis[symbolFile] || '❓';
     }
 }
 
@@ -801,9 +854,18 @@ class EventManager {
     initEvents() {
         // 轉動按鈕
         if (this.dom.elements.spinBtn) {
-            this.dom.elements.spinBtn.addEventListener('click', () => {
-                this.gameController.spin();
+            console.log('✅ 找到轉動按鈕，綁定事件');
+            this.dom.elements.spinBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('🎰 轉動按鈕被點擊');
+                if (!this.dom.elements.spinBtn.disabled) {
+                    this.gameController.spin();
+                } else {
+                    console.log('⚠️ 轉動按鈕已禁用');
+                }
             });
+        } else {
+            console.error('❌ 找不到轉動按鈕元素');
         }
         
         // 自動模式
@@ -1013,6 +1075,19 @@ async function initGame() {
             console.log('ℹ️ 運行在服務器模式，連接到後端API');
         }
         console.log('✅ 顯示初始化完成');
+        
+        // 測試轉動按鈕
+        const testSpinBtn = document.getElementById('spin-btn');
+        if (testSpinBtn) {
+            console.log('✅ 轉動按鈕測試成功，按鈕存在');
+            console.log('按鈕狀態:', {
+                disabled: testSpinBtn.disabled,
+                innerHTML: testSpinBtn.innerHTML,
+                className: testSpinBtn.className
+            });
+        } else {
+            console.error('❌ 轉動按鈕測試失敗，按鈕不存在');
+        }
         
         console.log('✅ 前端遊戲初始化完成！');
         
