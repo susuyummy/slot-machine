@@ -325,7 +325,10 @@ class GameState {
     }
     
     updateBet(newBet) {
-        if (newBet >= gameConfig.MIN_BET && newBet <= gameConfig.MAX_BET) {
+        const minBet = gameConfig ? gameConfig.MIN_BET : 1;
+        const maxBet = gameConfig ? gameConfig.MAX_BET : 500;
+        
+        if (newBet >= minBet && newBet <= maxBet) {
             this.currentBet = newBet;
             return true;
         }
@@ -833,7 +836,8 @@ class EventManager {
             btn.addEventListener('click', () => {
                 const bet = parseInt(btn.dataset.bet);
                 if (btn.id === 'max-bet') {
-                    this.updateBet(gameConfig.MAX_BET);
+                    const maxBet = gameConfig ? gameConfig.MAX_BET : 500;
+                    this.updateBet(maxBet);
                 } else {
                     this.updateBet(bet);
                 }
@@ -851,7 +855,8 @@ class EventManager {
     
     adjustBet(direction) {
         const betOptions = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500];
-        const currentIndex = betOptions.indexOf(this.gameState.currentBet);
+        const currentBet = this.gameState.currentBet || 10;
+        const currentIndex = betOptions.indexOf(currentBet);
         const newIndex = Math.max(0, Math.min(betOptions.length - 1, currentIndex + direction));
         this.updateBet(betOptions[newIndex]);
     }
@@ -864,9 +869,11 @@ class EventManager {
     
     updateQuickBetButtons(currentBet) {
         const quickBetButtons = document.querySelectorAll('.quick-bet-btn[data-bet]');
+        const maxBet = gameConfig ? gameConfig.MAX_BET : 500;
+        
         quickBetButtons.forEach(btn => {
             const bet = parseInt(btn.dataset.bet);
-            if (bet === currentBet || (btn.id === 'max-bet' && currentBet === gameConfig.MAX_BET)) {
+            if (bet === currentBet || (btn.id === 'max-bet' && currentBet === maxBet)) {
                 btn.classList.add('active');
             } else {
                 btn.classList.remove('active');
