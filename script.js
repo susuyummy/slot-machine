@@ -588,9 +588,9 @@ class DOMManager {
     
     getRandomSymbolForAnimation() {
         const symbols = GAME_CONFIG.SYMBOLS;
-        return symbols[Math.floor(Math.random() * symbols.length)];
-    }
-    
+    return symbols[Math.floor(Math.random() * symbols.length)];
+}
+
     hideSpinAnimation(finalBoard) {
         // 如果有圓柱體轉輪，停止它們
         if (this.cylinderReels && this.cylinderReels.length > 0) {
@@ -1089,7 +1089,7 @@ class EventManager {
         let newIndex;
         if (direction > 0) {
             newIndex = Math.min(currentIndex + 1, betOptions.length - 1);
-        } else {
+    } else {
             newIndex = Math.max(currentIndex - 1, 0);
         }
         

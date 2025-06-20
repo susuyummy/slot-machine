@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎰 後端拉霸機遊戲</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🎰 後端拉霸機</h1>
+        <p class="subtitle">從最左側開始連續3個以上相同符號才能中獎</p>
+        
+        <!-- 遊戲資訊面板 -->
+        <div class="info-panel">
+            <div class="info-item">
+                <div class="info-label">餘額</div>
+                <div class="info-value" id="balance">1000</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">下注</div>
+                <div class="info-value" id="bet-display">10</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">獎金</div>
+                <div class="info-value" id="win-display">0</div>
+            </div>
+        </div>
+
+        <!-- 轉輪區域 -->
+        <div class="reels-container">
+            <div class="paylines" id="paylines"></div>
+            
+            <div class="reel" id="reel-0">
+                <div class="reel-content">
+                    <div class="symbol">🎨</div>
+                    <div class="symbol">🖼️</div>
+                    <div class="symbol">🐰</div>
+                </div>
+            </div>
+            
+            <div class="reel" id="reel-1">
+                <div class="reel-content">
+                    <div class="symbol">🌟</div>
+                    <div class="symbol">✨</div>
+                    <div class="symbol">🎯</div>
+                </div>
+            </div>
+            
+            <div class="reel" id="reel-2">
+                <div class="reel-content">
+                    <div class="symbol">🐰</div>
+                    <div class="symbol">🎨</div>
+                    <div class="symbol">✨</div>
+                </div>
+            </div>
+            
+            <div class="reel" id="reel-3">
+                <div class="reel-content">
+                    <div class="symbol">🎯</div>
+                    <div class="symbol">🌟</div>
+                    <div class="symbol">🖼️</div>
+                </div>
+            </div>
+            
+            <div class="reel" id="reel-4">
+                <div class="reel-content">
+                    <div class="symbol">✨</div>
+                    <div class="symbol">🐰</div>
+                    <div class="symbol">🖼️</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 控制面板 -->
+        <div class="controls">
+            <div class="bet-controls">
+                <div class="bet-group">
+                    <label for="bet-amount">💰 下注金額</label>
+                    <div class="bet-selector">
+                        <button class="bet-btn" id="bet-minus">-</button>
+                        <select id="bet-amount">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                        </select>
+                        <button class="bet-btn" id="bet-plus">+</button>
+                    </div>
+                </div>
+                
+                <div class="quick-bet">
+                    <span class="quick-bet-label">快速下注:</span>
+                    <button class="quick-bet-btn" data-bet="1">1</button>
+                    <button class="quick-bet-btn" data-bet="10">10</button>
+                    <button class="quick-bet-btn" data-bet="50">50</button>
+                    <button class="quick-bet-btn" data-bet="100">100</button>
+                    <button class="quick-bet-btn" data-bet="500">500</button>
+                    <button class="quick-bet-btn" id="max-bet">MAX</button>
+                </div>
+            </div>
+            
+            <div class="action-buttons">
+                <button class="btn btn-primary" id="spin-btn">
+                    🎰 轉動
+                </button>
+                
+                <button class="btn btn-secondary" id="auto-btn">
+                    🔄 自動
+                </button>
+                
+                <button class="btn btn-secondary" id="stop-auto-btn" style="display: none;">
+                    ⏹️ 停止
+                </button>
+            </div>
+        </div>
+
+        <!-- 訊息區域 -->
+        <div class="message" id="message">
+            🎰 歡迎來到後端拉霸機遊戲！從最左側開始連續3個以上相同符號才能中獎
+        </div>
+
+        <!-- 賠付表 -->
+        <div class="paytable" id="paytable">
+            <h3>🏆 賠付表</h3>
+            <div class="paytable-grid">
+                <div class="paytable-item">
+                    <div class="symbol-display">🐰</div>
+                    <div class="payouts">
+                        <span class="high-value">3連: ×500</span>
+                        <span class="high-value">4連: ×1500</span>
+                        <span class="high-value">5連: ×3000</span>
+                        <span class="special">⭐ 超級獎勵</span>
+                    </div>
+                </div>
+                
+                <div class="paytable-item">
+                    <div class="symbol-display">🎯</div>
+                    <div class="payouts">
+                        <span>3連: ×400</span>
+                        <span>4連: ×1200</span>
+                        <span>5連: ×4000</span>
+                        <span>圖片5</span>
+                    </div>
+                </div>
+                
+                <div class="paytable-item">
+                    <div class="symbol-display">✨</div>
+                    <div class="payouts">
+                        <span>3連: ×250</span>
+                        <span>4連: ×750</span>
+                        <span>5連: ×2500</span>
+                        <span>圖片4</span>
+                    </div>
+                </div>
+                
+                <div class="paytable-item">
+                    <div class="symbol-display">🌟</div>
+                    <div class="payouts">
+                        <span>3連: ×200</span>
+                        <span>4連: ×600</span>
+                        <span>5連: ×2000</span>
+                        <span>圖片3</span>
+                    </div>
+                </div>
+                
+                <div class="paytable-item">
+                    <div class="symbol-display">🖼️</div>
+                    <div class="payouts">
+                        <span>3連: ×150</span>
+                        <span>4連: ×450</span>
+                        <span>5連: ×1500</span>
+                        <span>圖片2</span>
+                    </div>
+                </div>
+                
+                <div class="paytable-item">
+                    <div class="symbol-display">🎨</div>
+                    <div class="payouts">
+                        <span>3連: ×100</span>
+                        <span>4連: ×300</span>
+                        <span>5連: ×1000</span>
+                        <span>圖片1</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="rules">
+                <h4>🎯 遊戲規則</h4>
+                <ul>
+                    <li><strong>賠付線</strong>：5條賠付線（3排橫線 + 2條對角線）</li>
+                    <li><strong>中獎條件</strong>：從最左側第一輪開始，連續3個以上相同符號</li>
+                    <li><strong>重要</strong>：中間斷掉後面又出現不算中獎！例如 [🎨,🎨,🎨,🖼️,🌟] ✅ 但 [🌟,🖼️,🎨,🎨,🎨] ❌</li>
+                    <li><strong>獎金計算</strong>：賠付倍數 × 下注金額</li>
+                    <li><strong>後端運算</strong>：所有遊戲邏輯由Node.js後端處理</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="script-frontend.js"></script>
+</body>
+</html> 
