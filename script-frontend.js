@@ -126,11 +126,24 @@ class APIClient {
     }
     
     async checkServerAvailability() {
+        // 如果是 GitHub Pages 或其他靜態託管，直接使用本地模式
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            console.log('🌐 檢測到靜態託管環境，使用本地模式');
+            this.useLocalMode = true;
+            return;
+        }
+        
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 2000);
+            
             const response = await fetch(`${this.baseURL}/api/config`, {
                 method: 'GET',
-                timeout: 2000
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
+            
             if (response.ok) {
                 console.log('✅ 後端服務器可用，使用服務器模式');
                 this.useLocalMode = false;
