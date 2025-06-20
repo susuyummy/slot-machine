@@ -10,13 +10,145 @@ let eventManager = null;
 let userId = null;
 let gameConfig = null;
 
-// ===== API通信類別 =====
+// ===== 純前端遊戲邏輯 =====
+class LocalGameEngine {
+    constructor() {
+        this.symbols = [
+            'IMG_1538.JPG',
+            'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg',
+            'IMG_1385.JPG',
+            'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg',
+            '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg',
+            '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg',
+            'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg'
+        ];
+        
+        this.payouts = {
+            'IMG_1385.JPG': { 3: 500, 4: 1500, 5: 3000 },
+            '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg': { 3: 400, 4: 1200, 5: 4000 },
+            'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg': { 3: 250, 4: 750, 5: 2500 },
+            'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg': { 3: 200, 4: 600, 5: 2000 },
+            'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg': { 3: 150, 4: 450, 5: 1500 },
+            'IMG_1538.JPG': { 3: 100, 4: 300, 5: 1000 }
+        };
+        
+        this.paylines = [
+            [0, 1, 2, 3, 4], // 第一排
+            [5, 6, 7, 8, 9], // 第二排
+            [10, 11, 12, 13, 14], // 第三排
+            [0, 6, 12, 8, 4], // 對角線1
+            [10, 6, 2, 8, 14] // 對角線2
+        ];
+    }
+    
+    generateBoard() {
+        const board = [];
+        for (let i = 0; i < 15; i++) {
+            board.push(this.symbols[Math.floor(Math.random() * this.symbols.length)]);
+        }
+        return board;
+    }
+    
+    calculateWinnings(board, betAmount) {
+        let totalWin = 0;
+        const winningPositions = new Set();
+        const winDetails = [];
+        
+        for (let lineIndex = 0; lineIndex < this.paylines.length; lineIndex++) {
+            const line = this.paylines[lineIndex];
+            const symbols = line.map(pos => board[pos]);
+            
+            // 檢查從左開始的連續相同符號
+            let count = 1;
+            const firstSymbol = symbols[0];
+            
+            for (let i = 1; i < symbols.length; i++) {
+                if (symbols[i] === firstSymbol) {
+                    count++;
+                } else {
+                    break;
+                }
+            }
+            
+            if (count >= 3 && this.payouts[firstSymbol]) {
+                const multiplier = this.payouts[firstSymbol][count] || 0;
+                const lineWin = multiplier * betAmount;
+                totalWin += lineWin;
+                
+                // 記錄中獎位置
+                for (let i = 0; i < count; i++) {
+                    winningPositions.add(line[i]);
+                }
+                
+                winDetails.push({
+                    line: lineIndex + 1,
+                    symbol: firstSymbol,
+                    count: count,
+                    multiplier: multiplier,
+                    win: lineWin
+                });
+            }
+        }
+        
+        return {
+            totalWin,
+            winningPositions: Array.from(winningPositions),
+            winDetails
+        };
+    }
+    
+    async spin(betAmount) {
+        // 模擬網路延遲
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const board = this.generateBoard();
+        const winResult = this.calculateWinnings(board, betAmount);
+        
+        return {
+            success: true,
+            result: {
+                board,
+                totalWin: winResult.totalWin,
+                winningPositions: winResult.winningPositions,
+                winDetails: winResult.winDetails
+            }
+        };
+    }
+}
+
+// ===== API客戶端（支援本地和遠程模式）=====
 class APIClient {
     constructor(baseURL = 'http://localhost:3000') {
         this.baseURL = baseURL;
+        this.localEngine = new LocalGameEngine();
+        this.useLocalMode = false;
+        this.checkServerAvailability();
+    }
+    
+    async checkServerAvailability() {
+        try {
+            const response = await fetch(`${this.baseURL}/api/config`, {
+                method: 'GET',
+                timeout: 2000
+            });
+            if (response.ok) {
+                console.log('✅ 後端服務器可用，使用服務器模式');
+                this.useLocalMode = false;
+            } else {
+                throw new Error('Server not available');
+            }
+        } catch (error) {
+            console.log('⚠️ 後端服務器不可用，切換到本地模式');
+            this.useLocalMode = true;
+        }
     }
     
     async request(endpoint, options = {}) {
+        if (this.useLocalMode) {
+            // 本地模式，返回模擬數據
+            return this.handleLocalRequest(endpoint, options);
+        }
+        
         try {
             const url = `${this.baseURL}${endpoint}`;
             const response = await fetch(url, {
@@ -33,9 +165,53 @@ class APIClient {
             
             return await response.json();
         } catch (error) {
-            console.error('API請求失敗:', error);
-            throw error;
+            console.error('API請求失敗，切換到本地模式:', error);
+            this.useLocalMode = true;
+            return this.handleLocalRequest(endpoint, options);
         }
+    }
+    
+    async handleLocalRequest(endpoint, options = {}) {
+        // 模擬API響應
+        if (endpoint.includes('/api/config')) {
+            return {
+                success: true,
+                config: {
+                    MIN_BET: 1,
+                    MAX_BET: 500,
+                    INITIAL_BALANCE: 1000
+                }
+            };
+        }
+        
+        if (endpoint.includes('/api/session/')) {
+            return {
+                success: true,
+                session: {
+                    balance: 1000,
+                    lastWin: 0,
+                    totalWins: 0,
+                    spinCount: 0
+                }
+            };
+        }
+        
+        if (endpoint.includes('/api/spin')) {
+            const body = JSON.parse(options.body || '{}');
+            const spinResult = await this.localEngine.spin(body.betAmount || 10);
+            return {
+                success: true,
+                result: spinResult.result,
+                session: {
+                    balance: 1000 - body.betAmount + spinResult.result.totalWin,
+                    lastWin: spinResult.result.totalWin,
+                    totalWins: spinResult.result.totalWin,
+                    spinCount: 1
+                }
+            };
+        }
+        
+        return { success: false, error: 'Unknown endpoint' };
     }
     
     async getSession(userId) {
@@ -72,6 +248,7 @@ class GameState {
         this.isSpinning = false;
         this.isAutoMode = false;
         this.currentBoard = [];
+        this.isLocalMode = false; // 追蹤是否為本地模式
     }
     
     async loadSession(userId) {
@@ -104,18 +281,32 @@ class GameState {
         this.isSpinning = true;
         
         try {
+            // 檢查是否為本地模式
+            this.isLocalMode = this.apiClient.useLocalMode;
+            
             const response = await this.apiClient.spin(userId, this.currentBet);
             
             if (response.success) {
-                // 更新遊戲狀態
-                const session = response.session;
-                this.balance = session.balance;
-                this.lastWin = session.lastWin;
-                this.totalWins = session.totalWins;
-                this.spinCount = session.spinCount;
+                if (this.isLocalMode) {
+                    // 本地模式：手動管理餘額
+                    this.balance -= this.currentBet;
+                    this.lastWin = response.result.totalWin;
+                    this.balance += this.lastWin;
+                    this.totalWins += this.lastWin;
+                    this.spinCount += 1;
+                } else {
+                    // 服務器模式：使用服務器返回的會話數據
+                    const session = response.session;
+                    this.balance = session.balance;
+                    this.lastWin = session.lastWin;
+                    this.totalWins = session.totalWins;
+                    this.spinCount = session.spinCount;
+                }
+                
                 this.currentBoard = response.result.board;
                 
                 console.log('✅ 轉動成功:', response.result);
+                console.log(`💰 餘額: ${this.balance}, 本次獲勝: ${this.lastWin}`);
                 return response.result;
             } else {
                 console.error('❌ 轉動失敗:', response.error);
@@ -526,9 +717,11 @@ class GameController {
                 if (result.totalWin > 0) {
                     this.dom.highlightWinningSymbols(result.winningPositions);
                     this.dom.showWinEffect(result.totalWin);
-                    this.dom.showMessage(result.message, 'win');
+                    const winMessage = result.message || `🎉 恭喜中獎！獲得 ${result.totalWin} 金幣！`;
+                    this.dom.showMessage(winMessage, 'win');
                 } else {
-                    this.dom.showMessage(result.message, 'lose');
+                    const loseMessage = result.message || '😔 沒有中獎，再試一次吧！';
+                    this.dom.showMessage(loseMessage, 'lose');
                 }
             } else {
                 this.dom.showMessage('❌ 轉動失敗，請重試', 'lose');
@@ -740,7 +933,14 @@ async function initGame() {
         ];
         domManager.renderBoard(initialBoard);
         
-        domManager.showMessage('🎰 後端拉霸機準備就緒！從最左側開始連續3個以上相同圖片才能中獎！', 'info');
+        // 根據模式顯示不同訊息
+        if (apiClient.useLocalMode) {
+            domManager.showMessage('🎰 前端拉霸機準備就緒！（本地模式）從最左側開始連續3個以上相同圖片才能中獎！', 'info');
+            console.log('ℹ️ 運行在本地模式，所有遊戲邏輯在瀏覽器中執行');
+        } else {
+            domManager.showMessage('🎰 後端拉霸機準備就緒！從最左側開始連續3個以上相同圖片才能中獎！', 'info');
+            console.log('ℹ️ 運行在服務器模式，連接到後端API');
+        }
         console.log('✅ 顯示初始化完成');
         
         console.log('✅ 前端遊戲初始化完成！');
