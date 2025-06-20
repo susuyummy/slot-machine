@@ -525,7 +525,7 @@ class DOMManager {
     }
     
     createSimpleSpinAnimation(content) {
-        console.log('🎯 創建簡單轉動動畫');
+        console.log('🎯 創建明顯的轉動動畫 - 參考 GuaHsu 方法');
         
         // 使用默認符號列表
         const symbols = [
@@ -541,33 +541,37 @@ class DOMManager {
         // 清空內容
         content.innerHTML = '';
         
-        // 創建更多動畫符號，確保有足夠的滾動內容
+        // 創建大量符號來確保明顯的滾動效果
         const spinSymbols = [];
-        for (let i = 0; i < 25; i++) {  // 增加到25個符號
+        for (let i = 0; i < 50; i++) {  // 大幅增加符號數量
             const symbolFile = symbols[Math.floor(Math.random() * symbols.length)];
             const symbolDiv = document.createElement('div');
             symbolDiv.className = 'symbol spinning-symbol';
             symbolDiv.style.cssText = `
                 width: 100%;
-                height: 80px;
+                height: 100px;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                border: 1px solid rgba(255,255,255,0.2);
-                margin: 2px 0;
-                background: rgba(0,0,0,0.3);
-                border-radius: 8px;
+                border: 2px solid #FFD700;
+                margin: 5px 0;
+                background: linear-gradient(45deg, #1a1a1a, #333);
+                border-radius: 10px;
+                box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+                transform: scale(0.95);
+                transition: transform 0.1s;
             `;
             
             if (symbolFile.includes('.jpg') || symbolFile.includes('.jpeg') || symbolFile.includes('.JPG')) {
                 const img = document.createElement('img');
                 img.src = symbolFile;
-                img.style.cssText = 'width: 90%; height: 90%; object-fit: cover; border-radius: 5px;';
+                img.style.cssText = 'width: 85%; height: 85%; object-fit: cover; border-radius: 8px;';
                 symbolDiv.appendChild(img);
             } else {
                 symbolDiv.textContent = this.getSymbolEmoji(symbolFile);
-                symbolDiv.style.fontSize = '2.5rem';
-                symbolDiv.style.color = '#fff';
+                symbolDiv.style.fontSize = '3rem';
+                symbolDiv.style.color = '#FFD700';
+                symbolDiv.style.textShadow = '0 0 10px rgba(255,215,0,0.5)';
             }
             
             spinSymbols.push(symbolDiv);
@@ -576,31 +580,29 @@ class DOMManager {
         // 添加符號到容器
         spinSymbols.forEach(symbol => content.appendChild(symbol));
         
-        // 複製符號創建無縫循環（複製兩次確保足夠長）
-        for (let i = 0; i < 2; i++) {
-            spinSymbols.forEach(symbol => {
-                const clone = symbol.cloneNode(true);
-                content.appendChild(clone);
-            });
-        }
-        
-        // 設置動畫樣式 - 使用適中的速度讓轉動清晰可見
+        // 設置容器樣式和動畫 - 參考 GuaHsu 的快速滾動效果
         content.style.cssText = `
             display: flex;
             flex-direction: column;
             height: auto;
-            min-height: 600px;
-            animation: seamless-spin 0.3s linear infinite;
-            background: rgba(255,255,255,0.1);
-            border: 2px solid rgba(255,215,0,0.5);
-            box-shadow: 0 0 20px rgba(255,215,0,0.3);
+            min-height: 1000px;
+            animation: fast-spin 0.1s linear infinite;
+            background: rgba(0,0,0,0.8);
+            border: 3px solid #FFD700;
+            border-radius: 15px;
+            box-shadow: 
+                0 0 30px rgba(255,215,0,0.6),
+                inset 0 0 20px rgba(255,215,0,0.1);
+            overflow: hidden;
+            position: relative;
         `;
         
-        // 添加視覺指示器
+        // 添加閃爍效果
         content.setAttribute('data-spinning', 'true');
+        content.style.setProperty('--spin-glow', '0 0 50px rgba(255,215,0,0.8)');
         
-        console.log('✅ 動畫已設置，符號數量:', content.children.length);
-        console.log('✅ 動畫樣式:', content.style.animation);
+        console.log('✅ 高速動畫已設置，符號數量:', content.children.length);
+        console.log('✅ 使用快速動畫: fast-spin 0.1s linear infinite');
     }
     
     hideSpinAnimation(finalBoard) {
