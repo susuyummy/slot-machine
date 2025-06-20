@@ -867,11 +867,31 @@ class EventManager {
     }
     
     adjustBet(direction) {
-        const betOptions = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500];
-        const currentBet = this.gameState.currentBet || 10;
-        const currentIndex = betOptions.indexOf(currentBet);
-        const newIndex = Math.max(0, Math.min(betOptions.length - 1, currentIndex + direction));
-        this.updateBet(betOptions[newIndex]);
+        try {
+            const betOptions = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500];
+            const currentBet = this.gameState && this.gameState.currentBet ? this.gameState.currentBet : 10;
+            const currentIndex = betOptions.indexOf(currentBet);
+            
+            // 如果找不到當前下注金額，使用最接近的值
+            let actualIndex = currentIndex;
+            if (currentIndex === -1) {
+                // 找到最接近的值
+                for (let i = 0; i < betOptions.length; i++) {
+                    if (betOptions[i] >= currentBet) {
+                        actualIndex = i;
+                        break;
+                    }
+                }
+                if (actualIndex === -1) actualIndex = betOptions.length - 1;
+            }
+            
+            const newIndex = Math.max(0, Math.min(betOptions.length - 1, actualIndex + direction));
+            this.updateBet(betOptions[newIndex]);
+        } catch (error) {
+            console.error('adjustBet 錯誤:', error);
+            // 設定默認值
+            this.updateBet(10);
+        }
     }
     
     updateBetSelector(bet) {
@@ -907,20 +927,51 @@ async function initGame() {
         // 創建API客戶端
         const apiClient = new APIClient();
         
+        // 先檢查服務器可用性
+        await apiClient.checkServerAvailability();
+        
         // 獲取遊戲配置
         console.log('📋 獲取遊戲配置...');
-        const configResponse = await apiClient.getConfig();
-        if (configResponse.success) {
-            gameConfig = configResponse.config;
-            console.log('✅ 遊戲配置載入成功');
-        } else {
-            throw new Error('遊戲配置載入失敗');
+        try {
+            const configResponse = await apiClient.getConfig();
+            if (configResponse.success) {
+                gameConfig = configResponse.config;
+                console.log('✅ 遊戲配置載入成功');
+            } else {
+                throw new Error('遊戲配置載入失敗');
+            }
+        } catch (error) {
+            console.log('⚠️ 無法載入服務器配置，使用默認配置');
+            gameConfig = {
+                SYMBOLS: [
+                    'IMG_1538.JPG',
+                    'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg',
+                    'IMG_1385.JPG',
+                    'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg',
+                    '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg',
+                    '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg'
+                ],
+                ROWS: 3,
+                COLS: 5,
+                MIN_BET: 1,
+                MAX_BET: 500
+            };
         }
         
         // 創建遊戲狀態
         console.log('🎮 創建遊戲狀態...');
         gameState = new GameState(apiClient);
-        await gameState.loadSession(userId);
+        
+        // 確保遊戲狀態有正確的初始值
+        if (!gameState.currentBet || gameState.currentBet < 1) {
+            gameState.currentBet = 10;
+        }
+        
+        try {
+            await gameState.loadSession(userId);
+        } catch (error) {
+            console.log('⚠️ 會話載入失敗，使用默認值');
+        }
         console.log('✅ 遊戲狀態創建完成');
         
         // 創建DOM管理器
