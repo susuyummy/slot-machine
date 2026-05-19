@@ -1,378 +1,455 @@
-const symbols = [
-    '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg',
-    '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg',
-    'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg',
-    'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg',
-    'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg',
-    'IMG_1538.JPG'
-];
-const symbolType = [
-    'diamond',
-    'star',
-    'bell',
-    'grape',
-    'lemon',
-    'cherry'
-];
-let balance = 1000;
-let isSpinning = false;
-let isAutoLever = false;
-let freeSpin = false;
-
-const reelCount = 5;
-const rowCount = 3;
-const wheelLength = 30;
-const reels = Array.from({length: reelCount}, (_, i) => document.getElementById(`reel${i + 1}`));
-const spinButton = document.getElementById('spin-button');
-const balanceDisplay = document.getElementById('balance');
-const betInput = document.getElementById('bet');
-const messageDiv = document.getElementById('message');
-
-// 拉霸機圖案與對應圖片
 const SYMBOLS = [
-    { name: 'cherry', img: 'IMG_1538.JPG', label: '🍒' },
-    { name: 'lemon', img: 'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg', label: '🍋' },
-    { name: 'grape', img: 'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg', label: '🍇' },
-    { name: 'bell', img: 'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg', label: '🔔' },
-    { name: 'star', img: '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg', label: '⭐' },
-    { name: 'diamond', img: '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg', label: '💎' }
+    { key: 'diamond', img: '71052E39-0FE6-476E-8F06-338760888F7B_1_102_o.jpeg', label: '💎', name: '鑽石' },
+    { key: 'star', img: '88750017-4810-4A26-A170-3374C30A44DA_1_105_c.jpeg', label: '⭐', name: '星星' },
+    { key: 'bell', img: 'A3DA6D9E-0EAF-417B-8A37-97C6EE7B9441_1_102_o.jpeg', label: '🔔', name: '鈴鐺' },
+    { key: 'grape', img: 'C3644DE6-C8C9-4670-BF6F-7C29A7DED3AF_1_102_o.jpeg', label: '🍇', name: '葡萄' },
+    { key: 'lemon', img: 'CD978DF5-874B-4B32-8F1F-45C6F1829101_1_105_c.jpeg', label: '🍋', name: '檸檬' },
+    { key: 'hamster', img: 'IMG_1538.JPG', label: '🐹', name: '倉鼠' }
 ];
 
 const REEL_COUNT = 5;
-const BET_AMOUNT = 10;
+const ROW_COUNT = 3;
+const STORAGE_KEY = 'susu-slot-state-v3';
+const START_BALANCE = 1000;
+const MIN_BET = 10;
+const MAX_BET = 200;
+const BET_STEP = 10;
 
-// 讀取本地餘額
-function loadBalance() {
-    const saved = localStorage.getItem('slot-balance');
-    if (saved !== null) {
-        balance = parseInt(saved);
-    }
-    balanceDisplay.textContent = balance;
-}
-
-// 儲存本地餘額
-function saveBalance() {
-    localStorage.setItem('slot-balance', balance);
-}
-
-window.onload = () => {
-    loadBalance();
-    reels.forEach(reel => {
-        const inner = reel.querySelector('.reel-inner');
-        inner.innerHTML = '';
-        inner.style.transform = 'translateY(0)';
-    });
-    // 拉桿互動
-    const lever = document.getElementById('lever');
-    if (lever) {
-        lever.addEventListener('click', async () => {
-            if (isSpinning || isAutoLever || balance < 10) return;
-            isAutoLever = true;
-            autoLeverSpin();
-        });
-    }
-    renderReels(Array(REEL_COUNT).fill(0));
-    document.getElementById('spin-button').onclick = spin;
-    document.getElementById('bet').value = BET_AMOUNT;
-    document.getElementById('bet').disabled = true;
+let state = {
+    balance: START_BALANCE,
+    bet: MIN_BET,
+    freeSpins: 0,
+    lastWin: 0,
+    history: []
 };
 
-function updateBalance(amount) {
-    balance += amount;
-    balanceDisplay.textContent = balance;
-    saveBalance();
+let board = createRandomBoard();
+let isSpinning = false;
+let isAutoSpinning = false;
+
+const reels = Array.from({ length: REEL_COUNT }, (_, index) => document.getElementById(`reel${index + 1}`));
+const balanceDisplay = document.getElementById('balance');
+const lastWinDisplay = document.getElementById('last-win');
+const freeSpinsDisplay = document.getElementById('free-spins');
+const betInput = document.getElementById('bet');
+const message = document.getElementById('message');
+const spinButton = document.getElementById('spin-button');
+const autoButton = document.getElementById('auto-button');
+const maxBetButton = document.getElementById('max-bet-button');
+const resetButton = document.getElementById('reset-button');
+const betMinusButton = document.getElementById('bet-minus');
+const betPlusButton = document.getElementById('bet-plus');
+const lever = document.getElementById('lever');
+const historyList = document.getElementById('history-list');
+const machinePanel = document.querySelector('.game-panel');
+const paylineOverlay = document.getElementById('payline-overlay');
+
+init();
+
+function init() {
+    loadState();
+    renderBoard(board);
+    syncUI();
+    bindEvents();
 }
 
-function getRandomSymbols() {
-    return Array.from({ length: REEL_COUNT }, () => Math.floor(Math.random() * SYMBOLS.length));
+function bindEvents() {
+    spinButton.addEventListener('click', () => spin());
+    lever.addEventListener('click', () => spin());
+    autoButton.addEventListener('click', toggleAutoSpin);
+    resetButton.addEventListener('click', resetGame);
+    maxBetButton.addEventListener('click', () => setBet(MAX_BET));
+    betMinusButton.addEventListener('click', () => setBet(state.bet - BET_STEP));
+    betPlusButton.addEventListener('click', () => setBet(state.bet + BET_STEP));
+    betInput.addEventListener('change', () => setBet(Number(betInput.value)));
 }
 
-function renderReels(symbolIndexes) {
-    for (let i = 0; i < REEL_COUNT; i++) {
-        const reel = document.getElementById(`reel${i + 1}`);
-        const inner = reel.querySelector('.reel-inner');
-        inner.innerHTML = `<img src="${SYMBOLS[symbolIndexes[i]].img}" alt="${SYMBOLS[symbolIndexes[i]].label}" title="${SYMBOLS[symbolIndexes[i]].label}" />`;
+function loadState() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (saved && Number.isFinite(saved.balance)) {
+            state = {
+                balance: clamp(saved.balance, 0, 9999999),
+                bet: clampToStep(saved.bet || MIN_BET),
+                freeSpins: clamp(saved.freeSpins || 0, 0, 99),
+                lastWin: clamp(saved.lastWin || 0, 0, 9999999),
+                history: Array.isArray(saved.history) ? saved.history.slice(0, 6) : []
+            };
+        }
+    } catch {
+        localStorage.removeItem(STORAGE_KEY);
     }
 }
 
-function showMessage(msg, color = '#d32f2f') {
-    messageDiv.textContent = msg;
-    messageDiv.style.color = color;
+function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-function clearMessage() {
-    messageDiv.textContent = '';
+function syncUI() {
+    balanceDisplay.textContent = state.balance;
+    lastWinDisplay.textContent = state.lastWin;
+    freeSpinsDisplay.textContent = state.freeSpins;
+    betInput.value = state.bet;
+    betMinusButton.disabled = state.bet <= MIN_BET || isSpinning;
+    betPlusButton.disabled = state.bet >= MAX_BET || isSpinning;
+    maxBetButton.disabled = state.bet >= MAX_BET || isSpinning;
+    spinButton.disabled = isSpinning || (!state.freeSpins && state.balance < state.bet);
+    lever.disabled = spinButton.disabled;
+    autoButton.textContent = isAutoSpinning ? '停止自動' : '自動 10 轉';
+    renderHistory();
+    saveState();
 }
 
-function countEachSymbol(symbolIndexes) {
-    const count = {};
-    for (const idx of symbolIndexes) {
-        count[idx] = (count[idx] || 0) + 1;
+function setBet(value) {
+    state.bet = clampToStep(value);
+    syncUI();
+}
+
+async function spin({ automatic = false } = {}) {
+    if (isSpinning) return false;
+    if (!state.freeSpins && state.balance < state.bet) {
+        showMessage('餘額不足，請降低下注或重置遊戲。', 'danger');
+        return false;
     }
-    return count;
+
+    isSpinning = true;
+    state.lastWin = 0;
+    clearWinningLines();
+    syncUI();
+    pullLever();
+
+    const isFreeSpin = state.freeSpins > 0;
+    if (isFreeSpin) {
+        state.freeSpins -= 1;
+        showMessage('免費轉啟動！', 'info');
+    } else {
+        state.balance -= state.bet;
+        showMessage(automatic ? '自動轉動中...' : '轉動中...', 'info');
+    }
+
+    board = await animateSpin();
+    const result = evaluateBoard(board, state.bet);
+    state.lastWin = result.totalWin;
+    state.balance += result.totalWin;
+    state.freeSpins += result.freeSpins;
+    addHistory(result, isFreeSpin);
+    renderBoard(board, result);
+    renderWinningLines(result.lineWins);
+    finishRound(result);
+
+    isSpinning = false;
+    syncUI();
+    return true;
 }
 
-function checkWin(symbolIndexes) {
-    const count = countEachSymbol(symbolIndexes);
-    let result = { win: false, multiplier: 0, message: '', bonus: false, freeSpin: false };
-    const diamondIdx = SYMBOLS.findIndex(s => s.name === 'diamond');
-    const starIdx = SYMBOLS.findIndex(s => s.name === 'star');
-    const bellIdx = SYMBOLS.findIndex(s => s.name === 'bell');
-    const diamondCount = count[diamondIdx] || 0;
-    const starCount = count[starIdx] || 0;
-    const bellCount = count[bellIdx] || 0;
-    if (diamondCount === 5) {
-        result = { win: true, multiplier: 1000, message: '五個💎！x1000倍！', bonus: false, freeSpin: false };
-    } else if (Object.values(count).some((v, idx) => v === 5 && idx !== diamondIdx)) {
-        result = { win: true, multiplier: 500, message: '五個相同！x500倍！', bonus: false, freeSpin: false };
-    } else if (diamondCount === 4) {
-        result = { win: true, multiplier: 100, message: '四個💎！x100倍！', bonus: false, freeSpin: false };
-    } else if (Object.values(count).some((v, idx) => v === 4 && idx !== diamondIdx)) {
-        result = { win: true, multiplier: 50, message: '四個相同！x50倍！', bonus: false, freeSpin: false };
-    } else if (diamondCount === 3) {
-        result = { win: true, multiplier: 20, message: '三個💎！x20倍！', bonus: false, freeSpin: false };
-    } else if (Object.values(count).some((v, idx) => v === 3 && idx !== diamondIdx)) {
-        result = { win: true, multiplier: 5, message: '三個相同！x5倍！', bonus: false, freeSpin: false };
-    } else if (diamondCount === 2) {
-        result = { win: true, multiplier: 3, message: '兩個💎！x3倍！', bonus: false, freeSpin: false };
-    } else if (Object.values(count).some((v, idx) => v === 2 && idx !== diamondIdx)) {
-        result = { win: true, multiplier: 1.5, message: '兩個相同！x1.5倍！', bonus: false, freeSpin: false };
-    }
-    if (starCount === 3) {
-        result.bonus = true;
-        result.message += ' 觸發BONUS GAME!';
-    }
-    if (bellCount === 3) {
-        result.freeSpin = true;
-        result.message += ' 獲得一次免費轉盤!';
-    }
-    return result;
-}
-
-// 新增：顯示獎金動畫圖案
-function showBonusIcon() {
-    let icon = document.createElement('div');
-    icon.id = 'bonus-icon';
-    icon.style.position = 'fixed';
-    icon.style.left = '50%';
-    icon.style.top = '30%';
-    icon.style.transform = 'translate(-50%, -50%)';
-    icon.style.fontSize = '5rem';
-    icon.style.zIndex = '9999';
-    icon.style.pointerEvents = 'none';
-    icon.style.animation = 'bonus-pop 1.2s cubic-bezier(0.23,1,0.32,1)';
-    icon.innerHTML = '⭐BONUS!';
-    document.body.appendChild(icon);
-    setTimeout(() => {
-        icon.remove();
-    }, 1200);
-}
-
-async function spin() {
-    if (isSpinning) return;
-    clearMessage();
-    if (!freeSpin && balance < 10) {
-        showMessage('餘額不足！', '#d32f2f');
+async function toggleAutoSpin() {
+    if (isAutoSpinning) {
+        isAutoSpinning = false;
+        syncUI();
         return;
     }
-    isSpinning = true;
-    spinButton.disabled = true;
-    if (!freeSpin) updateBalance(-10);
-    freeSpin = false;
-    const board = await spinAllReels53(2500);
-    const { winAmount, msg, bonus, free } = getWinResult53(board);
-    if (winAmount > 0) {
-        updateBalance(winAmount);
-        showMessage(msg + ` 您贏得了 ${winAmount} 點！`, '#388e3c');
-    } else {
-        showMessage('很可惜，沒有中獎，再試一次吧！', '#d32f2f');
+
+    isAutoSpinning = true;
+    syncUI();
+
+    for (let count = 0; count < 10 && isAutoSpinning; count++) {
+        const didSpin = await spin({ automatic: true });
+        if (!didSpin || (!state.freeSpins && state.balance < state.bet)) break;
+        await sleep(650);
     }
-    if (bonus) {
-        showBonusIcon();
-    }
-    if (free) {
-        freeSpin = true;
-        setTimeout(() => {
-            showMessage('免費轉盤啟動！', '#1976D2');
-            setTimeout(() => {
-                freeSpin = false;
-                spin();
-            }, 1000);
-        }, 1000);
-    }
-    isSpinning = false;
-    spinButton.disabled = false;
+
+    isAutoSpinning = false;
+    syncUI();
 }
 
-async function autoLeverSpin() {
-    const lever = document.getElementById('lever');
-    while (balance > 0) {
-        if (lever) {
-            lever.classList.add('lever-pushed');
-        }
-        await spin();
-        await sleep(400);
-        if (lever) {
-            lever.classList.remove('lever-pushed');
-        }
-        await sleep(200);
-    }
-    isAutoLever = false;
+function resetGame() {
+    state = {
+        balance: START_BALANCE,
+        bet: MIN_BET,
+        freeSpins: 0,
+        lastWin: 0,
+        history: []
+    };
+    board = createRandomBoard();
+    renderBoard(board);
+    showMessage('已重置，新的運氣從這一局開始。', 'info');
+    syncUI();
 }
 
-spinButton.addEventListener('click', spin);
+function pullLever() {
+    lever.classList.remove('pulled');
+    void lever.offsetWidth;
+    lever.classList.add('pulled');
+}
+
+async function animateSpin() {
+    const timers = [];
+
+    reels.forEach((reel, reelIndex) => {
+        reel.classList.add('spinning');
+        timers[reelIndex] = setInterval(() => {
+            const randomColumn = Array.from({ length: ROW_COUNT }, randomSymbolIndex);
+            renderColumn(reelIndex, randomColumn);
+        }, 80);
+    });
+
+    const finalBoard = createRandomBoard();
+
+    for (let reelIndex = 0; reelIndex < REEL_COUNT; reelIndex++) {
+        await sleep(420 + reelIndex * 170);
+        clearInterval(timers[reelIndex]);
+        reels[reelIndex].classList.remove('spinning');
+        renderColumn(reelIndex, finalBoard[reelIndex]);
+    }
+
+    return finalBoard;
+}
+
+function createRandomBoard() {
+    return Array.from({ length: REEL_COUNT }, () =>
+        Array.from({ length: ROW_COUNT }, randomSymbolIndex)
+    );
+}
+
+function randomSymbolIndex() {
+    const weightedSymbols = [0, 1, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5];
+    return weightedSymbols[Math.floor(Math.random() * weightedSymbols.length)];
+}
+
+function renderBoard(nextBoard, highlight = {}) {
+    const lineCells = highlight.lineCells || highlight.winningCells || new Set();
+    const scatterCells = highlight.scatterCells || new Set();
+    nextBoard.forEach((column, index) => renderColumn(index, column, lineCells, scatterCells));
+}
+
+function renderColumn(reelIndex, column, lineCells = new Set(), scatterCells = new Set()) {
+    const inner = reels[reelIndex].querySelector('.reel-inner');
+    inner.innerHTML = column.map((symbolIndex, rowIndex) => {
+        const symbol = SYMBOLS[symbolIndex];
+        const cellKey = `${reelIndex}-${rowIndex}`;
+        const winClass = lineCells.has(cellKey) ? ' win' : '';
+        const scatterClass = scatterCells.has(cellKey) ? ' scatter' : '';
+        return `
+            <div class="symbol-cell symbol-${symbol.key}${winClass}${scatterClass}" data-cell="${cellKey}">
+                <img src="${symbol.img}" alt="${symbol.name}" title="${symbol.label} ${symbol.name}">
+            </div>
+        `;
+    }).join('');
+}
+
+function evaluateBoard(currentBoard, bet) {
+    let totalMultiplier = 0;
+    const lineWins = findConnectedLineWins(currentBoard);
+    const lineCells = new Set();
+    const scatterCells = new Set();
+
+    lineWins.forEach(win => {
+        totalMultiplier += win.multiplier;
+        for (let reelIndex = 0; reelIndex < win.count; reelIndex++) {
+            lineCells.add(`${reelIndex}-${win.rows[reelIndex]}`);
+        }
+    });
+
+    const scatter = countScatters(currentBoard);
+    let freeSpins = 0;
+    let bonusWin = 0;
+
+    if (scatter.bell >= 3) {
+        freeSpins += scatter.bell - 2;
+    }
+
+    if (scatter.star >= 3) {
+        freeSpins += 2;
+        bonusWin += bet * (scatter.star + 2);
+        markScatterWins(currentBoard, 'star', scatterCells);
+    }
+
+    if (scatter.bell >= 3) {
+        markScatterWins(currentBoard, 'bell', scatterCells);
+    }
+
+    const winningCells = new Set([...lineCells, ...scatterCells]);
+    const lineWin = Math.round(bet * totalMultiplier);
+    return {
+        totalWin: lineWin + bonusWin,
+        lineWin,
+        bonusWin,
+        lineWins,
+        freeSpins,
+        lineCells,
+        scatterCells,
+        winningCells
+    };
+}
+
+function findConnectedLineWins(currentBoard) {
+    return SYMBOLS
+        .map((symbol, symbolIndex) => ({ symbol, symbolIndex }))
+        .filter(({ symbol }) => !isScatterSymbol(symbol.key))
+        .map(({ symbol, symbolIndex }) => getBestConnectedPath(currentBoard, symbol, symbolIndex))
+        .filter(Boolean);
+}
+
+function getBestConnectedPath(currentBoard, symbol, symbolIndex) {
+    let paths = [];
+
+    for (let row = 0; row < ROW_COUNT; row++) {
+        if (currentBoard[0][row] === symbolIndex) {
+            paths.push([row]);
+        }
+    }
+
+    if (!paths.length) return null;
+
+    let bestPath = paths[0];
+
+    for (let reelIndex = 1; reelIndex < REEL_COUNT; reelIndex++) {
+        const nextPaths = [];
+
+        paths.forEach(path => {
+            const previousRow = path[path.length - 1];
+            for (let row = 0; row < ROW_COUNT; row++) {
+                const isAdjacent = Math.abs(row - previousRow) <= 1;
+                if (isAdjacent && currentBoard[reelIndex][row] === symbolIndex) {
+                    nextPaths.push([...path, row]);
+                }
+            }
+        });
+
+        if (!nextPaths.length) break;
+
+        paths = nextPaths;
+        const longestPath = paths.reduce((best, path) => path.length > best.length ? path : best, paths[0]);
+        if (longestPath.length > bestPath.length) {
+            bestPath = longestPath;
+        }
+    }
+
+    const count = bestPath.length;
+    const multiplier = getLineMultiplier(symbolIndex, count);
+    if (!multiplier) return null;
+
+    return {
+        line: '相鄰路徑',
+        rows: bestPath,
+        symbol,
+        count,
+        multiplier
+    };
+}
+
+function getLineMultiplier(symbolIndex, count) {
+    const symbolKey = SYMBOLS[symbolIndex].key;
+    if (isScatterSymbol(symbolKey)) return 0;
+    const isDiamond = symbolKey === 'diamond';
+    if (count >= 5) return isDiamond ? 100 : 40;
+    if (count === 4) return isDiamond ? 20 : 10;
+    if (count === 3) return isDiamond ? 5 : 2;
+    return 0;
+}
+
+function isScatterSymbol(symbolKey) {
+    return symbolKey === 'star' || symbolKey === 'bell';
+}
+
+function countScatters(currentBoard) {
+    const counts = { star: 0, bell: 0 };
+    currentBoard.flat().forEach(symbolIndex => {
+        const key = SYMBOLS[symbolIndex].key;
+        if (key === 'star' || key === 'bell') counts[key] += 1;
+    });
+    return counts;
+}
+
+function markScatterWins(currentBoard, symbolKey, winningCells) {
+    currentBoard.forEach((column, reelIndex) => {
+        column.forEach((symbolIndex, rowIndex) => {
+            if (SYMBOLS[symbolIndex].key === symbolKey) {
+                winningCells.add(`${reelIndex}-${rowIndex}`);
+            }
+        });
+    });
+}
+
+function finishRound(result) {
+    machinePanel.classList.remove('celebrate');
+    void machinePanel.offsetWidth;
+
+    if (result.totalWin > 0) {
+        machinePanel.classList.add('celebrate');
+        const lineText = result.lineWins.length
+            ? `連線：${result.lineWins.map(win => `${win.symbol.label} ${win.count}連`).join('、')}`
+            : '';
+        const bonusText = result.bonusWin ? `Scatter Bonus +${result.bonusWin}` : '';
+        const detailText = [lineText, bonusText].filter(Boolean).join('；');
+        const freeText = result.freeSpins ? `，獲得 ${result.freeSpins} 次免費轉` : '';
+        showMessage(`中獎！${detailText}，贏得 ${result.totalWin}${freeText}`, 'success');
+        return;
+    }
+
+    if (result.freeSpins > 0) {
+        showMessage(`Scatter：🔔 任意位置 3 個以上，獲得 ${result.freeSpins} 次免費轉。`, 'success');
+        return;
+    }
+
+    showMessage('差一點點，下一轉說不定就回來了。', 'danger');
+}
+
+function addHistory(result, isFreeSpin) {
+    const label = result.totalWin > 0
+        ? `+${result.totalWin}`
+        : result.freeSpins > 0
+            ? `免費轉 +${result.freeSpins}`
+            : '未中獎';
+    state.history.unshift(`${isFreeSpin ? '免費轉' : `下注 ${state.bet}`}：${label}`);
+    state.history = state.history.slice(0, 6);
+}
+
+function renderWinningLines(lineWins) {
+    clearWinningLines();
+    lineWins.forEach(win => {
+        const points = [];
+        for (let reelIndex = 0; reelIndex < win.count; reelIndex++) {
+            const x = ((reelIndex + 0.5) / REEL_COUNT) * 100;
+            const y = ((win.rows[reelIndex] + 0.5) / ROW_COUNT) * 100;
+            points.push(`${x},${y}`);
+        }
+
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyline.setAttribute('points', points.join(' '));
+        paylineOverlay.appendChild(polyline);
+    });
+}
+
+function clearWinningLines() {
+    paylineOverlay.replaceChildren();
+}
+
+function renderHistory() {
+    historyList.innerHTML = state.history.length
+        ? state.history.map(item => `<li>${item}</li>`).join('')
+        : '<li>尚未開始</li>';
+}
+
+function showMessage(text, tone = 'info') {
+    const colors = {
+        info: '#f8cf5a',
+        success: '#49c47a',
+        danger: '#ff6b7a'
+    };
+    message.textContent = text;
+    message.style.color = colors[tone] || colors.info;
+}
+
+function clamp(value, min, max) {
+    return Math.min(Math.max(Number(value) || min, min), max);
+}
+
+function clampToStep(value) {
+    const clamped = clamp(value, MIN_BET, MAX_BET);
+    return Math.round(clamped / BET_STEP) * BET_STEP;
+}
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
-// 產生五乘三的盤面
-function getRandomBoard() {
-    return Array.from({length: reelCount}, () =>
-        Array.from({length: rowCount}, () => Math.floor(Math.random() * symbols.length))
-    );
-}
-
-// 動畫滾輪，三格都滾動
-async function spinAllReels53(duration = 2500, stopBoard = null) {
-    let wheels = [];
-    for (let col = 0; col < reelCount; col++) {
-        let wheel = [];
-        for (let i = 0; i < wheelLength; i++) {
-            wheel.push(Math.floor(Math.random() * symbols.length));
-        }
-        wheels.push(wheel);
-    }
-    for (let col = 0; col < reelCount; col++) {
-        const inner = reels[col].querySelector('.reel-inner');
-        inner.innerHTML = '';
-        for (let i = 0; i < wheelLength; i++) {
-            inner.innerHTML += getSymbolImg(symbols[wheels[col][i]]);
-        }
-        inner.style.transform = 'translateY(0)';
-    }
-    let currentOffset = 0;
-    let steps = 40;
-    let minInterval = 20;
-    let maxInterval = 180;
-    let finalOffsets = stopBoard ? stopBoard.map(colArr => colArr[0]) : Array.from({length: reelCount}, () => Math.floor(Math.random() * (wheelLength - rowCount)));
-    for (let i = 0; i < steps; i++) {
-        currentOffset++;
-        for (let col = 0; col < reelCount; col++) {
-            // 每次都補一個新隨機
-            wheels[col][(currentOffset + wheelLength - 1) % wheelLength] = Math.floor(Math.random() * symbols.length);
-            const inner = reels[col].querySelector('.reel-inner');
-            inner.style.transition = 'transform 0.06s cubic-bezier(0.23, 1, 0.32, 1)';
-            inner.style.transform = `translateY(-${currentOffset * 60}px)`;
-        }
-        let t = i / (steps - 1);
-        let interval = minInterval + (maxInterval - minInterval) * Math.pow(t, 2.5);
-        await sleep(interval);
-        if ((currentOffset + rowCount) >= wheelLength) {
-            for (let col = 0; col < reelCount; col++) {
-                const inner = reels[col].querySelector('.reel-inner');
-                let newImgs = '';
-                for (let i = 0; i < wheelLength; i++) {
-                    const idx = (currentOffset + i) % wheelLength;
-                    newImgs += getSymbolImg(symbols[wheels[col][idx]]);
-                }
-                inner.innerHTML = newImgs;
-                inner.style.transition = 'none';
-                inner.style.transform = 'translateY(0)';
-            }
-            currentOffset = 0;
-        }
-    }
-    // 最後平滑滑到隨機停下的位置
-    for (let col = 0; col < reelCount; col++) {
-        const inner = reels[col].querySelector('.reel-inner');
-        inner.style.transition = 'transform 0.25s cubic-bezier(0.23, 1, 0.32, 1)';
-        inner.style.transform = `translateY(-${finalOffsets[col] * 60}px)`;
-    }
-    await sleep(300);
-    // 回傳盤面
-    let board = [];
-    for (let col = 0; col < reelCount; col++) {
-        let colArr = [];
-        for (let row = 0; row < rowCount; row++) {
-            colArr.push(wheels[col][(finalOffsets[col] + row) % wheelLength]);
-        }
-        board.push(colArr);
-    }
-    return board;
-}
-
-function getSymbolImg(symbol) {
-    return `<img src="${symbol}" alt="水果">`;
-}
-
-// 只判斷中間橫排
-function getWinResult53(board) {
-    // board[col][row]，row=0上 row=1中 row=2下
-    let line = [];
-    for (let col = 0; col < reelCount; col++) {
-        line.push(board[col][1]);
-    }
-    // 計算中間橫排的獎勵
-    const counts = {};
-    line.forEach(idx => {
-        counts[idx] = (counts[idx] || 0) + 1;
-    });
-    let maxType = null;
-    let maxCount = 0;
-    for (const idx in counts) {
-        if (counts[idx] > maxCount) {
-            maxCount = counts[idx];
-            maxType = parseInt(idx);
-        }
-    }
-    const type = symbolType[maxType];
-    let winAmount = 0;
-    let msg = '';
-    let bonus = false, free = false;
-    if (maxCount === 5 && type === 'diamond') {
-        winAmount = BET_AMOUNT * 1000;
-        msg = '五個💎！x1000倍！';
-    } else if (maxCount === 5) {
-        winAmount = BET_AMOUNT * 500;
-        msg = '五個相同！x500倍！';
-    } else if (maxCount === 4 && type === 'diamond') {
-        winAmount = BET_AMOUNT * 100;
-        msg = '四個💎！x100倍！';
-    } else if (maxCount === 4) {
-        winAmount = BET_AMOUNT * 50;
-        msg = '四個相同！x50倍！';
-    } else if (maxCount === 3 && type === 'diamond') {
-        winAmount = BET_AMOUNT * 20;
-        msg = '三個💎！x20倍！';
-    } else if (maxCount === 3) {
-        winAmount = BET_AMOUNT * 5;
-        msg = '三個相同！x5倍！';
-    } else if (maxCount === 2 && type === 'diamond') {
-        winAmount = BET_AMOUNT * 3;
-        msg = '兩個💎！x3倍！';
-    } else if (maxCount === 2) {
-        winAmount = Math.round(BET_AMOUNT * 1.5);
-        msg = '兩個相同！x1.5倍！';
-    }
-    // 任意3個⭐觸發BONUS GAME
-    let starCount = 0, bellCount = 0;
-    line.forEach(idx => {
-        if (symbolType[idx] === 'star') starCount++;
-        if (symbolType[idx] === 'bell') bellCount++;
-    });
-    if (starCount === 3) {
-        bonus = true;
-        msg += ' 觸發BONUS GAME!';
-    }
-    if (bellCount === 3) {
-        free = true;
-        msg += ' 獲得一次免費轉盤!';
-    }
-    return { winAmount, msg, bonus, free };
-}
-
-// 新增動畫樣式
-const style = document.createElement('style');
-style.innerHTML = `@keyframes bonus-pop {0%{transform:translate(-50%,-50%) scale(0.5);opacity:0;}40%{transform:translate(-50%,-50%) scale(1.2);opacity:1;}70%{transform:translate(-50%,-50%) scale(1);opacity:1;}100%{transform:translate(-50%,-50%) scale(0.7);opacity:0;}}`;
-document.head.appendChild(style); 
