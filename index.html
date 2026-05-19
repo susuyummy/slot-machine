@@ -3,41 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>拉霸機遊戲</title>
+    <title>Susu Yummy 拉霸機</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>拉霸機遊戲</h1>
-        <div class="slot-machine">
-            <div class="reels-group">
-                <div class="reel" id="reel1"><div class="reel-inner"></div></div>
-                <div class="reel" id="reel2"><div class="reel-inner"></div></div>
-                <div class="reel" id="reel3"><div class="reel-inner"></div></div>
-                <div class="reel" id="reel4"><div class="reel-inner"></div></div>
-                <div class="reel" id="reel5"><div class="reel-inner"></div></div>
-            </div>
-            <div class="lever-area">
-                <div class="lever" id="lever">
-                    <div class="lever-knob"></div>
+    <main class="app-shell">
+        <section class="game-panel" aria-label="Susu Yummy slot machine">
+            <header class="machine-header">
+                <p class="eyebrow">Susu Yummy Casino</p>
+                <h1>幸運拉霸機</h1>
+                <div class="status-strip" aria-live="polite">
+                    <span>餘額 <strong id="balance">1000</strong></span>
+                    <span>本局贏分 <strong id="last-win">0</strong></span>
+                    <span>免費轉 <strong id="free-spins">0</strong></span>
                 </div>
+            </header>
+
+            <div class="machine-body">
+                <div class="reel-stage">
+                    <svg class="payline-overlay" id="payline-overlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+                    <div class="reels-group" id="reels">
+                        <div class="reel" id="reel1"><div class="reel-inner"></div></div>
+                        <div class="reel" id="reel2"><div class="reel-inner"></div></div>
+                        <div class="reel" id="reel3"><div class="reel-inner"></div></div>
+                        <div class="reel" id="reel4"><div class="reel-inner"></div></div>
+                        <div class="reel" id="reel5"><div class="reel-inner"></div></div>
+                    </div>
+                </div>
+
+                <button class="lever" id="lever" type="button" aria-label="拉下拉桿">
+                    <span class="lever-knob"></span>
+                </button>
             </div>
-            <div class="buttons">
-                <button id="spin-button">開始遊戲</button>
+
+            <div class="message" id="message" aria-live="assertive">調整下注，拉下拉桿試試手氣。</div>
+
+            <div class="controls">
+                <div class="bet-box">
+                    <button class="icon-button" id="bet-minus" type="button" aria-label="減少下注">−</button>
+                    <label for="bet">下注</label>
+                    <input type="number" id="bet" value="10" min="10" max="200" step="10">
+                    <button class="icon-button" id="bet-plus" type="button" aria-label="增加下注">+</button>
+                </div>
+                <button id="max-bet-button" type="button">最大下注</button>
+                <button class="primary-button" id="spin-button" type="button">開始轉動</button>
+                <button id="auto-button" type="button">自動 10 轉</button>
+                <button id="reset-button" type="button">重置</button>
             </div>
-        </div>
-        <div class="score">
-            <p>餘額: <span id="balance">1000</span></p>
-            <p>下注金額: <input type="number" id="bet" value="10" min="1" max="100"></p>
-        </div>
-        <div class="paytable">
-            <h2>獎金表</h2>
-            <p>五個相同: 10倍</p>
-            <p>四個相同: 5倍</p>
-            <p>三個相同: 3倍</p>
-        </div>
-        <div id="message" class="message"></div>
-    </div>
+        </section>
+
+        <aside class="info-panel">
+            <section class="paytable" aria-labelledby="paytable-title">
+                <h2 id="paytable-title">獎金表</h2>
+                <div class="pay-row"><span>💎💎💎💎💎</span><strong>100x</strong></div>
+                <div class="pay-row"><span>任意 5 連線</span><strong>40x</strong></div>
+                <div class="pay-row"><span>💎 4 連線</span><strong>20x</strong></div>
+                <div class="pay-row"><span>任意 4 連線</span><strong>10x</strong></div>
+                <div class="pay-row"><span>💎 3 連線</span><strong>5x</strong></div>
+                <div class="pay-row"><span>任意 3 連線</span><strong>2x</strong></div>
+                <div class="pay-row"><span>⭐ 任意位置 3+</span><strong>Bonus</strong></div>
+                <div class="pay-row"><span>🔔 任意位置 3+</span><strong>免費轉</strong></div>
+            </section>
+
+            <section class="lines" aria-labelledby="lines-title">
+                <h2 id="lines-title">中獎線</h2>
+                <p class="rules-note">線獎從最左軸開始，同圖案可同排或斜一格往右相鄰連接，連續 3 軸以上即中；⭐ 和 🔔 是 Scatter，不算連線。</p>
+                <div class="line-tags">
+                    <span>最左起算</span>
+                    <span>同排</span>
+                    <span>斜上</span>
+                    <span>斜下</span>
+                    <span>連續 3+</span>
+                </div>
+            </section>
+
+            <section class="history" aria-labelledby="history-title">
+                <h2 id="history-title">紀錄</h2>
+                <ol id="history-list"></ol>
+            </section>
+        </aside>
+    </main>
     <script src="script.js"></script>
 </body>
-</html> 
+</html>
